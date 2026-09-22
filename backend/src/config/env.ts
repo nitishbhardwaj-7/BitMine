@@ -1,0 +1,34 @@
+import "dotenv/config";
+import { z } from "zod";
+
+// Only what the current code needs is required. Integration secrets
+// (RevenueCat, Speed, Firebase...) are validated by their own modules when
+// those modules are added, so a missing key fails loudly at boot there.
+const schema = z.object({
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  PORT: z.coerce.number().int().positive().default(4000),
+  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
+  CORS_ORIGINS: z
+    .string()
+    .default("")
+    .transform((s) => s.split(",").map((o) => o.trim()).filter(Boolean)),
+  MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
+  JWT_ACCESS_SECRET: z.string().min(32, "JWT_ACCESS_SECRET must be at least 32 characters"),
+  ADMOB_SSV_KEYS_URL: z.string().url().default("https://www.gstatic.com/admob/reward/verifier-keys.json"),
+});
+
+export type Env = z.infer<typeof schema>;
+
+let cached: Env | undefined;
+
+export function env(): Env {
+  if (!cached) {
+    const parsed = schema.safeParse(process.env);
+    if (!parsed.success) {
+      const problems = parsed.error.issues.map((i) => `  ${i.path.join(".")}: ${i.message}`).join("\n");
+      throw new Error(`Invalid environment:\n${problems}`);
+    }
+    cached = parsed.data;
+  }
+  return cached;
+}

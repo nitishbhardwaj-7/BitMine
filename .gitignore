@@ -1,0 +1,11 @@
+# Read-only BitPlay clones: never commit (contain third-party secrets)
+reference/
+
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store

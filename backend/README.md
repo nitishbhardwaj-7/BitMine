@@ -1,0 +1,53 @@
+# BitMine backend
+
+API and background worker for BitMine (see [../docs/TECHNICAL_SPEC.md](../docs/TECHNICAL_SPEC.md)).
+
+## Requirements
+- Node 22+
+- A MongoDB **replica set** (MongoDB Atlas always is). The ledger uses transactions, so the app refuses to start on a standalone server.
+
+## Setup
+1. Install dependencies:
+   ```
+   npm install
+   ```
+2. Copy `.env.example` to `.env` and set `MONGODB_URI` (see *MongoDB Atlas* below).
+3. Seed the economics settings and product catalog (safe to re-run):
+   ```
+   npm run seed
+   ```
+4. Run the API and the worker in two terminals:
+   ```
+   npm run dev:api
+   npm run dev:worker
+   ```
+
+## Tests
+```
+npm test
+```
+The tests start their own throwaway MongoDB replica set. The first run downloads a MongoDB binary (~100 MB), and later runs reuse it. No `.env` is needed for tests.
+
+## MongoDB Atlas (development database)
+1. Sign up at https://www.mongodb.com/cloud/atlas and create a free **M0** cluster.
+2. *Database Access* → add a database user with a strong password.
+3. *Network Access* → add your current IP address.
+4. *Connect* → *Drivers* → copy the connection string, add a database name (e.g. `/bitmine`), and put it in `.env` as `MONGODB_URI`.
+
+## Layout
+| Path | What |
+|---|---|
+| `src/server.ts` | API entry |
+| `src/worker.ts` | Worker entry (hourly accrual; more jobs to come) |
+| `src/mining/accrual.ts` | Pure earnings maths |
+| `src/mining/accrualJob.ts` | Hourly job that credits earnings to the ledger |
+| `src/settings/economics.ts` | Versioned economics settings |
+| `src/mining/sessions.ts` | Daily Start mining |
+| `src/mining/status.ts` | Mine screen data and miners list |
+| `src/claims/service.ts` | Ad claims, daily caps, Super Miner tiers |
+| `src/claims/admobSsv.ts` | AdMob callback signature verification |
+| `src/routes/` | `/v1` API and `/webhooks` |
+| `src/auth/` | Access-token check (login flows come with the auth module) |
+| `src/config/economics.ts` | Launch numbers and product seeds |
+| `src/models/` | MongoDB models |
+| `src/lib/time.ts` | Timezone and local-midnight helpers |
