@@ -48,6 +48,8 @@ The tests start their own throwaway MongoDB replica set. The first run downloads
 | `src/claims/admobSsv.ts` | AdMob callback signature verification |
 | `src/routes/` | `/v1` API and `/webhooks` |
 | `src/auth/` | Access-token check (login flows come with the auth module) |
+| `src/store/service.ts` | Purchases: grants, stacking, Super Miner extensions, backfill, refunds |
+| `src/store/revenuecat.ts` | RevenueCat REST client |
 | `src/config/economics.ts` | Launch numbers and product seeds |
 | `src/models/` | MongoDB models |
 | `src/lib/time.ts` | Timezone and local-midnight helpers |

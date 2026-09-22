@@ -105,7 +105,7 @@ _id, sku: "miner_titan" | "super_basic" | "super_pro" | "super_max", kind: "mine
 name, priceDisplayUsd, durationDays
 gh                                   // miner: GH/s for the pack
 claimGh, claimsPerDay                // super_miner: per-claim GH/s and daily claims of this tier's track
-storeIds: { apple: "bitmine.miner.titan.180d", google: "bitmine_miner_titan_180d" }
+storeIds: { apple: "bitmine_miner_titan", google: "bitmine_miner_titan" }   // default: bitmine_{sku}, same in both stores
 active: bool, sortOrder
 ```
 

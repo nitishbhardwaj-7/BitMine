@@ -33,6 +33,11 @@ const userSchema = new Schema(
     twoFactor: { enabled: { type: Boolean, default: false } },
     status: { type: String, enum: ["active", "suspended", "deleted"], default: "active" },
     deviceIds: { type: [String], default: [] },
+    /** Reasons an admin should look before paying this user (e.g. a refunded purchase). */
+    reviewFlags: {
+      type: [{ reason: String, refType: String, refId: ObjectId, createdAt: Date, _id: false }],
+      default: [],
+    },
   },
   { timestamps: true },
 );
@@ -174,6 +179,17 @@ const superEntitlementSchema = new Schema(
 );
 superEntitlementSchema.index({ userId: 1, productId: 1 }, { unique: true });
 
+// ── storeSyncs: follow-up RevenueCat checks after a purchase ────────────
+const storeSyncSchema = new Schema(
+  {
+    userId: { type: ObjectId, ref: "User", required: true },
+    dueAt: { type: Date, required: true },
+    attempt: { type: Number, default: 0 },
+  },
+  { timestamps: true },
+);
+storeSyncSchema.index({ dueAt: 1 });
+
 // ── ledger: append-only ──────────────────────────────────────────────────
 const ledgerSchema = new Schema(
   {
@@ -205,6 +221,12 @@ const balanceSchema = new Schema(
     accruedUntil: { type: Date },
     /** Fraction of a msat carried between hourly credits (see mining/accrual.ts toWholeMsat). */
     accrualRemainder: { type: Number, default: 0, min: 0, max: 1 },
+    /**
+     * Bumped whenever a miner is added that may start before accruedUntil
+     * (late-processed purchases). The accrual transaction reads this document,
+     * so the two always conflict and one retries with fresh data.
+     */
+    minersRev: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
@@ -256,6 +278,7 @@ export const Session = mongoose.model("Session", sessionSchema);
 export const Claim = mongoose.model("Claim", claimSchema);
 export const Purchase = mongoose.model("Purchase", purchaseSchema);
 export const SuperEntitlement = mongoose.model("SuperEntitlement", superEntitlementSchema);
+export const StoreSync = mongoose.model("StoreSync", storeSyncSchema);
 export const Ledger = mongoose.model("Ledger", ledgerSchema);
 export const Balance = mongoose.model("Balance", balanceSchema);
 export const Withdrawal = mongoose.model("Withdrawal", withdrawalSchema);

@@ -14,6 +14,11 @@ const schema = z.object({
     .transform((s) => s.split(",").map((o) => o.trim()).filter(Boolean)),
   MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
   JWT_ACCESS_SECRET: z.string().min(32, "JWT_ACCESS_SECRET must be at least 32 characters"),
+  // Store: optional so the API can run before RevenueCat is set up; the store
+  // endpoints refuse to work (fail closed) until both are present.
+  REVENUECAT_SECRET_KEY: z.string().optional().transform((v) => v || undefined),
+  REVENUECAT_WEBHOOK_AUTH: z.string().optional().transform((v) => v || undefined),
+  ALLOW_SANDBOX: z.enum(["true", "false"]).default("false").transform((v) => v === "true"),
   ADMOB_SSV_KEYS_URL: z.string().url().default("https://www.gstatic.com/admob/reward/verifier-keys.json"),
 });
 

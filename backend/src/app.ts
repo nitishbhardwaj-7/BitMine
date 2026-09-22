@@ -7,6 +7,7 @@ import { pinoHttp } from "pino-http";
 import { logger } from "./lib/logger.js";
 import { AppError } from "./lib/errors.js";
 import type { SsvVerifier } from "./claims/admobSsv.js";
+import type { StoreDeps } from "./store/service.js";
 import { v1Router } from "./routes/v1.js";
 import { webhooksRouter } from "./routes/webhooks.js";
 
@@ -14,6 +15,9 @@ export interface AppOptions {
   corsOrigins: string[];
   jwtAccessSecret: string;
   ssv: SsvVerifier;
+  store: StoreDeps;
+  /** Value RevenueCat sends in the Authorization header of webhooks. */
+  revenueCatWebhookAuth?: string;
 }
 
 export function createApp(opts: AppOptions) {
@@ -34,8 +38,8 @@ export function createApp(opts: AppOptions) {
     res.status(dbUp ? 200 : 503).json({ ok: dbUp });
   });
 
-  app.use("/webhooks", webhooksRouter({ ssv: opts.ssv }));
-  app.use("/v1", v1Router({ jwtAccessSecret: opts.jwtAccessSecret }));
+  app.use("/webhooks", webhooksRouter({ ssv: opts.ssv, store: opts.store, revenueCatWebhookAuth: opts.revenueCatWebhookAuth }));
+  app.use("/v1", v1Router({ jwtAccessSecret: opts.jwtAccessSecret, store: opts.store }));
 
   app.use((_req, res) => {
     res.status(404).json({ error: "not_found", message: "Not found." });

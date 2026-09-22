@@ -10,6 +10,6 @@ for (const v of await Settings.find().sort({ version: 1 }).lean()) {
 }
 for (const p of await Product.find().sort({ sortOrder: 1 }).lean()) {
   const power = p.kind === "miner" ? `${p.gh} GH/s` : `${p.claimsPerDay} claims × ${p.claimGh} GH/s`;
-  console.log(`  ${p.sku.padEnd(12)} ${p.name.padEnd(16)} $${String(p.priceDisplayUsd).padEnd(6)} ${power.padEnd(22)} ${p.durationDays} days`);
+  console.log(`  ${p.sku.padEnd(12)} ${p.name.padEnd(16)} $${String(p.priceDisplayUsd).padEnd(6)} ${power.padEnd(22)} ${String(p.durationDays).padStart(3)} days  store id: ${p.storeIds?.apple ?? "-"}`);
 }
 await mongoose.disconnect();

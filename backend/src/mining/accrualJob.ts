@@ -10,10 +10,10 @@
  *    `accruedUntil` and skips, or its transaction aborts. Nothing is credited twice.
  *  - The app is never consulted: a user who closed the app is credited in full.
  *
- * Miners must never start before a user's `accruedUntil`, or those earlier
- * hours would be skipped. Claims and revocations always happen "now" (after
- * accruedUntil). A purchase can be processed late with an earlier purchasedAt;
- * the grant code must credit that gap itself (backfill), see the store module.
+ * Miners that start before a user's `accruedUntil` would miss those hours.
+ * Claims and revocations always happen "now" (after accruedUntil). A purchase
+ * processed late can start earlier; the store's grant credits that gap itself
+ * (backfill) and bumps `balances.minersRev` so it can't race this job.
  */
 import mongoose, { type Types } from "mongoose";
 import { Balance, Ledger, Miner } from "../models/index.js";
@@ -40,7 +40,7 @@ export async function runAccrual(opts: { now?: number } = {}): Promise<AccrualRe
 
   // Balances behind the target hour. Processed in batches; each user is independent.
   const cursor = Balance.find({ accruedUntil: { $lt: new Date(target) } })
-    .select({ userId: 1, accruedUntil: 1, accrualRemainder: 1 })
+    .select({ userId: 1, accruedUntil: 1 })
     .sort({ accruedUntil: 1 })
     .lean()
     .cursor({ batchSize: BATCH_SIZE });
@@ -48,7 +48,7 @@ export async function runAccrual(opts: { now?: number } = {}): Promise<AccrualRe
   for await (const bal of cursor) {
     result.usersProcessed++;
     try {
-      const r = await accrueUser(bal.userId, bal.accruedUntil!.getTime(), bal.accrualRemainder ?? 0, target, schedule);
+      const r = await accrueUser(bal.userId, bal.accruedUntil!.getTime(), target, schedule);
       if (r === "conflict") result.skippedConflicts++;
       else if (r > 0) {
         result.usersCredited++;
@@ -71,42 +71,50 @@ export async function runAccrual(opts: { now?: number } = {}): Promise<AccrualRe
 async function accrueUser(
   userId: Types.ObjectId,
   from: number,
-  remainder: number,
   target: number,
   schedule: RatePeriod[],
 ): Promise<number | "conflict"> {
   const until = Math.min(target, from + MAX_HOURS_PER_RUN * MS_PER_HOUR);
-
-  const minerDocs = await Miner.find({
-    userId,
-    startAt: { $lt: new Date(until) },
-    endAt: { $gt: new Date(from) },
-    $or: [{ revokedAt: null }, { revokedAt: { $gt: new Date(from) } }],
-  })
-    .select({ gh: 1, startAt: 1, endAt: 1, revokedAt: 1 })
-    .lean();
-
-  const miners: MinerSpan[] = minerDocs.map((m) => ({
-    gh: m.gh,
-    startAt: m.startAt.getTime(),
-    endAt: m.endAt.getTime(),
-    revokedAt: m.revokedAt ? m.revokedAt.getTime() : null,
-  }));
-
-  const entries: { hour: number; creditMsat: number }[] = [];
-  let carry = remainder;
-  for (let h = from; h < until; h += MS_PER_HOUR) {
-    const exact = miners.length ? earnedMsat(miners, schedule, h, h + MS_PER_HOUR) : 0;
-    const { creditMsat, remainder: next } = toWholeMsat(exact, carry);
-    carry = next;
-    if (creditMsat > 0) entries.push({ hour: h, creditMsat });
-  }
-  const total = entries.reduce((s, e) => s + e.creditMsat, 0);
-
   const session = await mongoose.startSession();
   try {
-    let outcome: number | "conflict" = total;
+    let outcome: number | "conflict" = 0;
+    // Everything (balance read, miners read, writes) happens inside one
+    // transaction snapshot. A miner added concurrently by a late purchase also
+    // writes this balance, so the two transactions conflict and this one is
+    // retried by withTransaction with the new miner visible.
     await session.withTransaction(async () => {
+      const bal = await Balance.findOne({ userId }).session(session).lean();
+      if (!bal || bal.accruedUntil?.getTime() !== from) {
+        outcome = "conflict";
+        return;
+      }
+
+      const minerDocs = await Miner.find({
+        userId,
+        startAt: { $lt: new Date(until) },
+        endAt: { $gt: new Date(from) },
+        $or: [{ revokedAt: null }, { revokedAt: { $gt: new Date(from) } }],
+      })
+        .select({ gh: 1, startAt: 1, endAt: 1, revokedAt: 1 })
+        .session(session)
+        .lean();
+      const miners: MinerSpan[] = minerDocs.map((m) => ({
+        gh: m.gh,
+        startAt: m.startAt.getTime(),
+        endAt: m.endAt.getTime(),
+        revokedAt: m.revokedAt ? m.revokedAt.getTime() : null,
+      }));
+
+      const entries: { hour: number; creditMsat: number }[] = [];
+      let carry = bal.accrualRemainder ?? 0;
+      for (let h = from; h < until; h += MS_PER_HOUR) {
+        const exact = miners.length ? earnedMsat(miners, schedule, h, h + MS_PER_HOUR) : 0;
+        const { creditMsat, remainder: next } = toWholeMsat(exact, carry);
+        carry = next;
+        if (creditMsat > 0) entries.push({ hour: h, creditMsat });
+      }
+      const total = entries.reduce((sum, e) => sum + e.creditMsat, 0);
+
       const upd = await Balance.updateOne(
         { userId, accruedUntil: new Date(from) },
         {
@@ -117,7 +125,7 @@ async function accrueUser(
       );
       if (upd.modifiedCount !== 1) {
         outcome = "conflict";
-        return; // nothing written; the transaction commits empty
+        return;
       }
       if (entries.length) {
         await Ledger.insertMany(
@@ -132,6 +140,7 @@ async function accrueUser(
           { session },
         );
       }
+      outcome = total;
     });
     return outcome;
   } finally {

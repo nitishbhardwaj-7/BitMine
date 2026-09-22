@@ -4,6 +4,7 @@ import { requireUser } from "../auth/requireUser.js";
 import { startSession } from "../mining/sessions.js";
 import { getMiningStatus, listMiners } from "../mining/status.js";
 import { createClaimIntent, getClaim } from "../claims/service.js";
+import { listProducts, listPurchases, syncFromApp, type StoreDeps } from "../store/service.js";
 
 const claimBody = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("regular") }),
@@ -13,7 +14,7 @@ const claimBody = z.discriminatedUnion("kind", [
 // requireUser guarantees userId; this narrows the type for handlers.
 const uid = (req: Request) => req.userId!;
 
-export function v1Router(opts: { jwtAccessSecret: string }) {
+export function v1Router(opts: { jwtAccessSecret: string; store: StoreDeps }) {
   const r = Router();
   r.use(requireUser(opts.jwtAccessSecret));
 
@@ -37,6 +38,19 @@ export function v1Router(opts: { jwtAccessSecret: string }) {
 
   r.get("/claims/:id", async (req, res) => {
     res.json(await getClaim(uid(req), req.params.id!));
+  });
+
+  r.get("/store/products", async (_req, res) => {
+    res.json({ products: await listProducts() });
+  });
+
+  // Called by the app after a purchase completes (no body: we ask RevenueCat what was bought).
+  r.post("/store/sync", async (req, res) => {
+    res.json(await syncFromApp(uid(req), opts.store));
+  });
+
+  r.get("/store/purchases", async (req, res) => {
+    res.json({ purchases: await listPurchases(uid(req)) });
   });
 
   return r;

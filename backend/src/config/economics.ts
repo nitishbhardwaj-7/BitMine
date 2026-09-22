@@ -54,6 +54,14 @@ export const PRODUCT_SEEDS: ProductSeed[] = [
 ];
 
 /**
+ * Store product IDs used when creating the products in App Store Connect and
+ * Play Console. The same id works in both stores. Admins can change them later.
+ */
+export function defaultStoreId(sku: string): string {
+  return `bitmine_${sku}`;
+}
+
+/**
  * The 15-day guard (docs/ECONOMICS.md): one Titan + every free claim + one
  * Super Miner Max, all claims mining a full day, must not reach the minimum
  * withdrawal in under 15 days. Returns the days that user needs.
