@@ -324,6 +324,47 @@ const appConfigSchema = new Schema(
   { timestamps: true },
 );
 
+// ── admin: users, sessions, audit ───────────────────────────────────────
+const adminUserSchema = new Schema(
+  {
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    passwordHash: { type: String, required: true, select: false },
+    totpSecret: { type: String, required: true, select: false },
+    /** Last TOTP step accepted: a code can't be replayed within its window. */
+    lastTotpStep: { type: Number, default: 0 },
+    active: { type: Boolean, default: true },
+    lastLoginAt: Date,
+  },
+  { timestamps: true },
+);
+
+const adminSessionSchema = new Schema(
+  {
+    adminId: { type: ObjectId, ref: "AdminUser", required: true },
+    tokenHash: { type: String, required: true, unique: true },
+    /** "password" = passed step 1 only; "full" = signed in. */
+    stage: { type: String, enum: ["password", "full"], required: true },
+    csrf: { type: String, required: true },
+    ip: String,
+    expiresAt: { type: Date, required: true },
+  },
+  { timestamps: true },
+);
+adminSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+const adminAuditSchema = new Schema(
+  {
+    adminId: { type: ObjectId, ref: "AdminUser", required: true },
+    action: { type: String, required: true },
+    targetType: String,
+    targetId: String,
+    details: { type: Schema.Types.Mixed },
+    ip: String,
+  },
+  { timestamps: { createdAt: true, updatedAt: false } },
+);
+adminAuditSchema.index({ createdAt: -1 });
+
 // ── storeSyncs: follow-up RevenueCat checks after a purchase ────────────
 const storeSyncSchema = new Schema(
   {
@@ -438,6 +479,9 @@ export const Notification = mongoose.model("Notification", notificationSchema);
 export const SupportTicket = mongoose.model("SupportTicket", supportTicketSchema);
 export const Faq = mongoose.model("Faq", faqSchema);
 export const AppConfig = mongoose.model("AppConfig", appConfigSchema);
+export const AdminUser = mongoose.model("AdminUser", adminUserSchema);
+export const AdminSession = mongoose.model("AdminSession", adminSessionSchema);
+export const AdminAudit = mongoose.model("AdminAudit", adminAuditSchema);
 export const Ledger = mongoose.model("Ledger", ledgerSchema);
 export const Balance = mongoose.model("Balance", balanceSchema);
 export const Withdrawal = mongoose.model("Withdrawal", withdrawalSchema);

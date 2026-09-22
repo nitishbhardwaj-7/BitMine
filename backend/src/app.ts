@@ -12,6 +12,7 @@ import type { Mailer } from "./auth/mailer.js";
 import type { SocialVerifier } from "./auth/social.js";
 import { authRouter } from "./routes/auth.js";
 import { publicRouter } from "./routes/public.js";
+import { adminRouter, type AdminOptions } from "./admin/router.js";
 import { v1Router } from "./routes/v1.js";
 import { webhooksRouter } from "./routes/webhooks.js";
 
@@ -24,6 +25,8 @@ export interface AppOptions {
   revenueCatWebhookAuth?: string;
   mailer: Mailer;
   social: SocialVerifier;
+  /** Admin panel at /admin (omit to disable). */
+  admin?: AdminOptions;
 }
 
 export function createApp(opts: AppOptions) {
@@ -45,6 +48,7 @@ export function createApp(opts: AppOptions) {
   });
 
   app.use("/webhooks", webhooksRouter({ ssv: opts.ssv, store: opts.store, revenueCatWebhookAuth: opts.revenueCatWebhookAuth }));
+  if (opts.admin) app.use("/admin", adminRouter(opts.admin));
   app.use("/v1/public", publicRouter());
   app.use("/v1/auth", authRouter({ mailer: opts.mailer, social: opts.social, jwtAccessSecret: opts.jwtAccessSecret }));
   app.use("/v1", v1Router({ jwtAccessSecret: opts.jwtAccessSecret, store: opts.store, mailer: opts.mailer }));

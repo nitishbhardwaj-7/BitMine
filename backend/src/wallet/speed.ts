@@ -40,6 +40,8 @@ export interface SpeedClient {
   get(id: string): Promise<SpeedSend>;
   /** Most recent sends, newest first. */
   listRecent(): Promise<SpeedSend[]>;
+  /** Account balances as Speed returns them (shown in the admin panel). */
+  balances?(): Promise<unknown>;
 }
 
 interface RawSend {
@@ -96,6 +98,9 @@ export function httpSpeedClient(apiKey: string, baseUrl = "https://api.tryspeed.
     async listRecent() {
       const r = (await call("GET", "/send")) as { data?: RawSend[] };
       return (r.data ?? []).map(toSend);
+    },
+    async balances() {
+      return call("GET", "/balances");
     },
   };
 }

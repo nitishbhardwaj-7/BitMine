@@ -103,18 +103,48 @@
    1. HOMEPAGE HERO (VISUAL CENTERPIECE)
    ========================================================================== */
 /* ==========================================================================
-   1. HOMEPAGE HERO (PREMIUM LIQUID / 3D MOTION CENTERPIECE)
+   1. HOMEPAGE HERO (COLLAPSING VIEWPORT MASK ARCHITECTURE)
    ========================================================================== */
-.home-hero {
-  background: #070611;
-  border-bottom-left-radius: 36px;
-  border-bottom-right-radius: 36px;
-  padding: 14px 16px 24px 16px;
-  color: var(--text-light);
+.home-screen-container {
+  width: 100%;
+  height: 100%;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 16px 40px rgba(7, 6, 17, 0.45);
+}
+
+.home-hero {
+  background: #070611;
+  border-bottom-left-radius: 26px;
+  border-bottom-right-radius: 26px;
+  padding: 0 16px 14px 16px;
+  color: var(--text-light);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  overflow: hidden; /* ESSENTIAL: creates the physical clipping boundary */
+  box-shadow: 0 14px 36px rgba(7, 6, 17, 0.45);
   perspective: 800px;
+  pointer-events: auto;
+  box-sizing: border-box;
+  will-change: height, border-radius;
+  transition: border-radius 0.25s ease, box-shadow 0.25s ease;
+}
+
+.hero-collapsing-content {
+  width: 100%;
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-scroll-spacer {
+  width: 100%;
+  height: 425px; /* dynamically synchronized with expanded hero height */
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 /* --- Hero Liquid Light Background Layers --- */
@@ -244,7 +274,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  padding-top: 48px;
+  margin-bottom: 12px;
   position: relative;
   z-index: 10;
   transition: opacity 0.3s ease, transform 0.3s ease;
@@ -316,9 +347,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
   position: relative;
   z-index: 10;
+  transition: margin-bottom 0.15s ease;
 }
 
 .hero-balance-wrapper {
@@ -331,6 +363,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  will-change: transform;
 }
 
 /* --- Floating Liquid Glass Balance Card --- */
@@ -341,14 +374,14 @@
   border: 1px solid rgba(255, 255, 255, 0.14);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border-radius: 24px;
-  padding: 14px 16px;
+  border-radius: 22px;
+  padding: 12px 14px;
   box-shadow: 
     inset 0 1px 1.5px rgba(255, 255, 255, 0.22),
-    0 12px 30px rgba(0, 0, 0, 0.25);
+    0 10px 24px rgba(0, 0, 0, 0.22);
   overflow: hidden;
   animation: glassCardFloat 5.4s ease-in-out infinite;
-  will-change: transform;
+  will-change: transform, padding;
 }
 
 /* Subtle Floating Animation for Glass Card (Independent 5.4s period) */
@@ -726,7 +759,7 @@
 
 /* Security 2FA Card Inside Hero */
 .security-alert-card {
-  margin-top: 18px;
+  margin-top: 10px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(186, 142, 255, 0.35);
   border-radius: var(--radius-xl);
@@ -1601,4 +1634,79 @@
 .play-circle-btn svg {
   width: 14px;
   height: 14px;
+}
+
+/* Homepage Settlement Activity Stream */
+.settlement-history-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-xl);
+  padding: 6px 16px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+}
+
+.settlement-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background var(--transition-fast);
+}
+.settlement-row:last-child {
+  border-bottom: none;
+}
+
+.settlement-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settlement-icon-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(18, 183, 106, 0.1);
+  color: var(--color-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.settlement-icon-circle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.settlement-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.settlement-time {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.settlement-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.settlement-amount {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-success);
+}
+
+.settlement-fiat {
+  font-size: 11px;
+  color: var(--text-secondary);
 }

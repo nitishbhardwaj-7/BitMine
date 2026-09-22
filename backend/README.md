@@ -22,11 +22,19 @@ API and background worker for BitMine (see [../docs/TECHNICAL_SPEC.md](../docs/T
    npm run dev:worker
    ```
 
+## Admin panel
+The admin panel is served by the API at `/admin` (sign-in with password + authenticator app).
+Create your admin account once, in your own terminal (the details are printed only once):
+```
+npm run admin:create -- you@example.com
+```
+Add the printed setup key to an authenticator app, then sign in at `http://localhost:4000/admin/login`.
+
 ## Tests
 ```
 npm test
 ```
-The tests start their own throwaway MongoDB replica set. The first run downloads a MongoDB binary (~100 MB), and later runs reuse it. No `.env` is needed for tests.
+The tests start one throwaway MongoDB replica set and give each test file its own database. The first run downloads a MongoDB binary (~100 MB), and later runs reuse it. No `.env` is needed for tests.
 
 ## MongoDB Atlas (development database)
 1. Sign up at https://www.mongodb.com/cloud/atlas and create a free **M0** cluster.
@@ -60,6 +68,7 @@ The tests start their own throwaway MongoDB replica set. The first run downloads
 | `src/support/service.ts` | Support tickets |
 | `src/routes/public.ts` | FAQs and app config (no sign-in) |
 | `src/config/content.ts` | FAQ and app config seed content |
+| `src/admin/` | Admin panel: sign-in (password + TOTP), withdrawals, users, support, economics, products, content, announcements, audit log |
 | `src/config/economics.ts` | Launch numbers and product seeds |
 | `src/models/` | MongoDB models |
 | `src/lib/time.ts` | Timezone and local-midnight helpers |

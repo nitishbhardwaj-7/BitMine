@@ -335,6 +335,13 @@
   border-radius: 36px;
 }
 
+.gallery-phone-frame .home-hero {
+  height: 345px !important;
+}
+.gallery-phone-frame .hero-scroll-spacer {
+  height: 345px !important;
+}
+
 /* Toast Notification */
 .bm-toast {
   position: fixed;

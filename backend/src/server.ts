@@ -6,6 +6,7 @@ import { SsvVerifier, httpKeyFetcher } from "./claims/admobSsv.js";
 import { httpRevenueCatClient } from "./store/revenuecat.js";
 import { brevoMailer, devLogMailer, disabledMailer } from "./auth/mailer.js";
 import { socialVerifier } from "./auth/social.js";
+import { httpSpeedClient } from "./wallet/speed.js";
 
 const config = env();
 await connectDb(config.MONGODB_URI);
@@ -34,6 +35,10 @@ const app = createApp({
     allowSandbox: config.ALLOW_SANDBOX,
   },
   revenueCatWebhookAuth: config.REVENUECAT_WEBHOOK_AUTH,
+  admin: {
+    speed: config.SPEED_API_KEY ? httpSpeedClient(config.SPEED_API_KEY, config.SPEED_API_BASE) : undefined,
+    secureCookies: config.NODE_ENV === "production",
+  },
 });
 if (!config.REVENUECAT_SECRET_KEY) logger.warn("REVENUECAT_SECRET_KEY not set: store purchases are disabled");
 const server = app.listen(config.PORT, () => {

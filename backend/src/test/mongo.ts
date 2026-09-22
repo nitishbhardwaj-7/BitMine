@@ -1,22 +1,21 @@
 /**
- * Test helper: a throwaway single-node MongoDB replica set (transactions work).
- * The first run downloads a MongoDB binary (~100 MB) into the user cache.
+ * Test helper: connects each test file to its own database on the shared
+ * in-memory replica set started by test/globalSetup.ts (transactions work).
  */
+import { randomBytes } from "node:crypto";
 import mongoose from "mongoose";
-import { MongoMemoryReplSet } from "mongodb-memory-server";
-
-let replSet: MongoMemoryReplSet | undefined;
+import { inject } from "vitest";
 
 export async function startTestDb(): Promise<void> {
-  replSet = await MongoMemoryReplSet.create({ replSet: { count: 1, storageEngine: "wiredTiger" } });
-  await mongoose.connect(replSet.getUri());
+  const dbName = `t_${randomBytes(6).toString("hex")}`;
+  await mongoose.connect(inject("mongoUri"), { dbName });
   // Build unique indexes up front; the idempotency guarantees depend on them.
   await Promise.all(Object.values(mongoose.models).map((m) => m.syncIndexes()));
 }
 
 export async function stopTestDb(): Promise<void> {
+  await mongoose.connection.dropDatabase().catch(() => undefined);
   await mongoose.disconnect();
-  await replSet?.stop();
 }
 
 export async function clearTestDb(): Promise<void> {
