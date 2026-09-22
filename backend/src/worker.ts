@@ -15,6 +15,7 @@ import { httpSpeedClient } from "./wallet/speed.js";
 import { runReferralRewards } from "./referrals/referralJob.js";
 import { runOutbox, runReminders } from "./notifications/jobs.js";
 import { fcmSender } from "./notifications/push.js";
+import { refreshNews } from "./content/news.js";
 
 const config = env();
 await connectDb(config.MONGODB_URI);
@@ -80,6 +81,8 @@ const push =
     : undefined;
 if (!push) logger.warn("Firebase service account not set: push notifications are paused (in-app list still works)");
 every("push-outbox", 30_000, () => runOutbox(push));
+
+every("news", 30 * 60_000, () => refreshNews());
 
 every("payouts", 60_000, async () => {
   const r = await runPayouts(speed);

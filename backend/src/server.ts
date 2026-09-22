@@ -7,6 +7,7 @@ import { httpRevenueCatClient } from "./store/revenuecat.js";
 import { brevoMailer, devLogMailer, disabledMailer } from "./auth/mailer.js";
 import { socialVerifier } from "./auth/social.js";
 import { httpSpeedClient } from "./wallet/speed.js";
+import { MarketCache, coinGeckoFetcher } from "./content/market.js";
 
 const config = env();
 await connectDb(config.MONGODB_URI);
@@ -35,6 +36,8 @@ const app = createApp({
     allowSandbox: config.ALLOW_SANDBOX,
   },
   revenueCatWebhookAuth: config.REVENUECAT_WEBHOOK_AUTH,
+  market: new MarketCache(coinGeckoFetcher()),
+  devShortcuts: config.DEV_SHORTCUTS && config.NODE_ENV !== "production",
   admin: {
     speed: config.SPEED_API_KEY ? httpSpeedClient(config.SPEED_API_KEY, config.SPEED_API_BASE) : undefined,
     secureCookies: config.NODE_ENV === "production",

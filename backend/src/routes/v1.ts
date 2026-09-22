@@ -2,10 +2,10 @@ import { Router, type Request } from "express";
 import { z } from "zod";
 import { requireUser } from "../auth/requireUser.js";
 import { startSession } from "../mining/sessions.js";
-import { getMiningStatus, listMiners } from "../mining/status.js";
+import { getMiningStatus, listMiners, minerDetail } from "../mining/status.js";
 import { createClaimIntent, getClaim } from "../claims/service.js";
 import { listProducts, listPurchases, syncFromApp, type StoreDeps } from "../store/service.js";
-import { getWallet, listLedger } from "../wallet/wallet.js";
+import { dailyEarnings, getWallet, listLedger } from "../wallet/wallet.js";
 import { listWithdrawals, requestWithdrawal, sendWithdrawalCode } from "../wallet/withdrawals.js";
 import type { Mailer } from "../auth/mailer.js";
 import { getReferralSummary } from "../referrals/referralJob.js";
@@ -106,6 +106,10 @@ export function v1Router(opts: { jwtAccessSecret: string; store: StoreDeps; mail
     res.json({ miners: await listMiners(uid(req)) });
   });
 
+  r.get("/miners/:id", async (req, res) => {
+    res.json(await minerDetail(uid(req), String(req.params.id)));
+  });
+
   r.post("/claims", async (req, res) => {
     const body = claimBody.parse(req.body);
     res.status(201).json(await createClaimIntent(uid(req), body));
@@ -130,6 +134,10 @@ export function v1Router(opts: { jwtAccessSecret: string; store: StoreDeps; mail
 
   r.get("/wallet", async (req, res) => {
     res.json(await getWallet(uid(req)));
+  });
+
+  r.get("/wallet/daily", async (req, res) => {
+    res.json(await dailyEarnings(uid(req), Number(req.query.days) || 14));
   });
 
   r.get("/wallet/ledger", async (req, res) => {

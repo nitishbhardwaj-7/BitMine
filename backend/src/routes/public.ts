@@ -1,10 +1,37 @@
 import { Router } from "express";
 import { AppConfig, Faq } from "../models/index.js";
 import { getEconomics } from "../settings/economics.js";
+import { notFound } from "../lib/errors.js";
+import type { MarketCache } from "../content/market.js";
+import { listNews } from "../content/news.js";
+import { getLesson, listLessons } from "../content/academy.js";
 
 /** No sign-in needed: shown before login and on app start. */
-export function publicRouter() {
+export function publicRouter(opts: { market?: MarketCache } = {}) {
   const r = Router();
+
+  r.get("/market", async (_req, res) => {
+    if (!opts.market) return void res.status(503).json({ error: "market_unavailable", message: "Prices are unavailable right now." });
+    try {
+      res.json(await opts.market.get());
+    } catch {
+      res.status(503).json({ error: "market_unavailable", message: "Prices are unavailable right now." });
+    }
+  });
+
+  r.get("/news", async (req, res) => {
+    res.json({ articles: await listNews(typeof req.query.category === "string" ? req.query.category.toUpperCase() : undefined, Number(req.query.limit) || 30) });
+  });
+
+  r.get("/academy", async (_req, res) => {
+    res.json({ lessons: await listLessons() });
+  });
+
+  r.get("/academy/:slug", async (req, res) => {
+    const lesson = await getLesson(String(req.params.slug));
+    if (!lesson) throw notFound("Lesson");
+    res.json(lesson);
+  });
 
   r.get("/faqs", async (_req, res) => {
     const faqs = await Faq.find({ active: true }).sort({ order: 1, createdAt: 1 }).lean();

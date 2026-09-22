@@ -2,7 +2,8 @@
  * What the Mine screen shows. All numbers come from the server; the app only
  * animates `displayMsat` forward at `msatPerSecond` between refreshes.
  */
-import type { Types } from "mongoose";
+import { Types } from "mongoose";
+import { notFound } from "../lib/errors.js";
 import { Balance, Miner, Product, SuperEntitlement } from "../models/index.js";
 import { nextLocalMidnight } from "../lib/time.js";
 import { getEconomics, getRateSchedule } from "../settings/economics.js";
@@ -85,6 +86,32 @@ export async function getMiningStatus(userId: Types.ObjectId, now = Date.now()) 
     superTiers,
     nextMidnight: iso(nextLocalMidnight(now, tz)),
     minWithdrawalSats: settings.minWithdrawalSats,
+  };
+}
+
+/** One paid miner with what it has earned so far (credited hours plus the current hour). */
+export async function minerDetail(userId: Types.ObjectId, id: string, now = Date.now()) {
+  if (!Types.ObjectId.isValid(id)) throw notFound("Miner");
+  const m = await Miner.findOne({ _id: id, userId }).populate<{ productId: { sku: string; name: string; durationDays: number } | null }>("productId", { sku: 1, name: 1, durationDays: 1 }).lean();
+  if (!m) throw notFound("Miner");
+  const schedule = await getRateSchedule();
+  const span: MinerSpan = { gh: m.gh, startAt: m.startAt.getTime(), endAt: m.endAt.getTime(), revokedAt: m.revokedAt?.getTime() ?? null };
+  const end = Math.min(span.endAt, span.revokedAt ?? Infinity);
+  const earned = earnedMsat([span], schedule, span.startAt, Math.min(now, end));
+  const total = earnedMsat([span], schedule, span.startAt, end);
+  return {
+    id: String(m._id),
+    source: m.source,
+    product: m.productId ? { sku: m.productId.sku, name: m.productId.name } : null,
+    gh: m.gh,
+    startAt: iso(m.startAt),
+    endAt: iso(m.endAt),
+    status: m.revokedAt ? "revoked" : now < end ? "active" : "expired",
+    progress: Math.min(1, Math.max(0, (now - span.startAt) / (span.endAt - span.startAt))),
+    daysLeft: Math.max(0, Math.ceil((end - now) / 86_400_000)),
+    earnedMsat: Math.floor(earned),
+    expectedTotalMsat: Math.floor(total),
+    msatPerDay: Math.floor(msatPerSecondAt([span], schedule, Math.min(now, end - 1)) * 86_400),
   };
 }
 

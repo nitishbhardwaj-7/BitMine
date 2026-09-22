@@ -8,10 +8,15 @@ import { PRODUCT_SEEDS, defaultStoreId } from "../config/economics.js";
 import { seedEconomics } from "../settings/economics.js";
 import { AppConfig, Faq } from "../models/index.js";
 import { APP_CONFIG_DEFAULTS, FAQ_SEEDS } from "../config/content.js";
+import { Lesson } from "../models/index.js";
+import { LESSON_SEEDS } from "../content/academy.js";
 
 export async function seedAll(): Promise<void> {
   await seedEconomics();
   await AppConfig.updateOne({ _id: "app" }, { $setOnInsert: APP_CONFIG_DEFAULTS }, { upsert: true });
+  for (const [i, l] of LESSON_SEEDS.entries()) {
+    await Lesson.updateOne({ slug: l.slug }, { $setOnInsert: { ...l, order: (i + 1) * 10 } }, { upsert: true });
+  }
   for (const [i, f] of FAQ_SEEDS.entries()) {
     await Faq.updateOne({ seedKey: f.seedKey }, { $setOnInsert: { ...f, order: (i + 1) * 10 } }, { upsert: true });
   }

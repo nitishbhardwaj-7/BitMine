@@ -365,6 +365,39 @@ const adminAuditSchema = new Schema(
 );
 adminAuditSchema.index({ createdAt: -1 });
 
+// ── newsArticles: headlines from RSS feeds ──────────────────────────────
+const newsArticleSchema = new Schema(
+  {
+    url: { type: String, required: true, unique: true },
+    source: { type: String, required: true },
+    title: { type: String, required: true },
+    summary: { type: String, default: "" },
+    imageUrl: String,
+    category: { type: String, enum: ["BITCOIN", "MINING", "MARKET", "WEB3"], required: true },
+    publishedAt: { type: Date, required: true },
+  },
+  { timestamps: true },
+);
+newsArticleSchema.index({ publishedAt: -1 });
+newsArticleSchema.index({ category: 1, publishedAt: -1 });
+
+// ── lessons: Academy ─────────────────────────────────────────────────────
+const lessonSchema = new Schema(
+  {
+    slug: { type: String, required: true, unique: true },
+    title: { type: String, required: true },
+    summary: { type: String, required: true },
+    body: { type: String, required: true },
+    level: { type: String, default: "Beginner" },
+    category: { type: String, default: "Mining" },
+    minutes: { type: Number, default: 3 },
+    image: { type: String, default: "btc_cloud_hero" },
+    order: { type: Number, default: 0 },
+    active: { type: Boolean, default: true },
+  },
+  { timestamps: true },
+);
+
 // ── storeSyncs: follow-up RevenueCat checks after a purchase ────────────
 const storeSyncSchema = new Schema(
   {
@@ -480,6 +513,8 @@ export const SupportTicket = mongoose.model("SupportTicket", supportTicketSchema
 export const Faq = mongoose.model("Faq", faqSchema);
 export const AppConfig = mongoose.model("AppConfig", appConfigSchema);
 export const AdminUser = mongoose.model("AdminUser", adminUserSchema);
+export const NewsArticle = mongoose.model("NewsArticle", newsArticleSchema);
+export const Lesson = mongoose.model("Lesson", lessonSchema);
 export const AdminSession = mongoose.model("AdminSession", adminSessionSchema);
 export const AdminAudit = mongoose.model("AdminAudit", adminAuditSchema);
 export const Ledger = mongoose.model("Ledger", ledgerSchema);

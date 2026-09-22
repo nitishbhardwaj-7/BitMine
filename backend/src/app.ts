@@ -13,6 +13,8 @@ import type { SocialVerifier } from "./auth/social.js";
 import { authRouter } from "./routes/auth.js";
 import { publicRouter } from "./routes/public.js";
 import { adminRouter, type AdminOptions } from "./admin/router.js";
+import { devRouter } from "./routes/dev.js";
+import type { MarketCache } from "./content/market.js";
 import { v1Router } from "./routes/v1.js";
 import { webhooksRouter } from "./routes/webhooks.js";
 
@@ -27,6 +29,9 @@ export interface AppOptions {
   social: SocialVerifier;
   /** Admin panel at /admin (omit to disable). */
   admin?: AdminOptions;
+  market?: MarketCache;
+  /** Development-only claim/purchase shortcuts (never mounted in production). */
+  devShortcuts?: boolean;
 }
 
 export function createApp(opts: AppOptions) {
@@ -49,7 +54,10 @@ export function createApp(opts: AppOptions) {
 
   app.use("/webhooks", webhooksRouter({ ssv: opts.ssv, store: opts.store, revenueCatWebhookAuth: opts.revenueCatWebhookAuth }));
   if (opts.admin) app.use("/admin", adminRouter(opts.admin));
-  app.use("/v1/public", publicRouter());
+  app.use("/v1/public", publicRouter({ market: opts.market }));
+  if (opts.devShortcuts && process.env.NODE_ENV !== "production") {
+    app.use("/v1/dev", devRouter({ jwtAccessSecret: opts.jwtAccessSecret }));
+  }
   app.use("/v1/auth", authRouter({ mailer: opts.mailer, social: opts.social, jwtAccessSecret: opts.jwtAccessSecret }));
   app.use("/v1", v1Router({ jwtAccessSecret: opts.jwtAccessSecret, store: opts.store, mailer: opts.mailer }));
 

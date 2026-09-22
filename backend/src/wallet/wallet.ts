@@ -34,6 +34,27 @@ export async function getWallet(userId: Types.ObjectId, now = Date.now()) {
 }
 
 /**
+ * Earnings per UTC day (mining and referral credits), newest first, for the
+ * "Recent settlements" list and charts. Days with nothing credited are omitted.
+ */
+export async function dailyEarnings(userId: Types.ObjectId, days = 14, now = Date.now()) {
+  const n = Math.min(Math.max(days, 1), 90);
+  const from = new Date(Math.floor(now / 86_400_000) * 86_400_000 - (n - 1) * 86_400_000);
+  const rows = await Ledger.aggregate<{ _id: { day: string; type: string }; msat: number }>([
+    { $match: { userId, type: { $in: ["mining", "referral"] }, createdAt: { $gte: from } } },
+    { $group: { _id: { day: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, type: "$type" }, msat: { $sum: "$amountMsat" } } },
+  ]);
+  const byDay = new Map<string, { date: string; miningMsat: number; referralMsat: number }>();
+  for (const r of rows) {
+    const d = byDay.get(r._id.day) ?? { date: r._id.day, miningMsat: 0, referralMsat: 0 };
+    if (r._id.type === "mining") d.miningMsat += r.msat;
+    else d.referralMsat += r.msat;
+    byDay.set(r._id.day, d);
+  }
+  return { days: [...byDay.values()].sort((a, b) => (a.date < b.date ? 1 : -1)) };
+}
+
+/**
  * The user's transactions, newest first, 50 per page. Hourly mining credits
  * are shown as they are; the app can group them by day.
  */

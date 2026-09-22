@@ -35,6 +35,9 @@ const schema = z.object({
   FIREBASE_PROJECT_ID: z.string().optional().transform((v) => v || undefined),
   FIREBASE_CLIENT_EMAIL: z.string().optional().transform((v) => v || undefined),
   FIREBASE_PRIVATE_KEY: z.string().optional().transform((v) => (v ? v.replace(/\\n/g, "\n") : undefined)),
+  // Development only: lets the browser build finish claims and purchases without
+  // AdMob/RevenueCat. Ignored (always off) when NODE_ENV=production.
+  DEV_SHORTCUTS: z.enum(["true", "false"]).default("false").transform((v) => v === "true"),
   ADMOB_SSV_KEYS_URL: z.string().url().default("https://www.gstatic.com/admob/reward/verifier-keys.json"),
 });
 
