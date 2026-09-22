@@ -9,6 +9,7 @@ import { seedAll } from "../db/seed.js";
 import { signAccessToken } from "../auth/tokens.js";
 import { ensureBalance } from "../wallet/balances.js";
 import { createApp } from "../app.js";
+import { baseAuthOptions } from "../test/auth.js";
 
 const SECRET = "test-secret-at-least-32-characters-long!!";
 let server: Server;
@@ -17,7 +18,7 @@ let base: string;
 beforeAll(async () => {
   await startTestDb();
   await seedAll();
-  server = createApp({ corsOrigins: [], jwtAccessSecret: SECRET, ssv: makeSsvSigner().verifier, store: { allowSandbox: false } }).listen(0);
+  server = createApp({ ...(await baseAuthOptions()).options, corsOrigins: [], jwtAccessSecret: SECRET, ssv: makeSsvSigner().verifier, store: { allowSandbox: false } }).listen(0);
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }, 180_000);
 afterAll(async () => {

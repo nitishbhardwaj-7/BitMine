@@ -1,0 +1,706 @@
+/* ==========================================================================
+   BITMINE REFINED DESIGN SYSTEM COMPONENTS (LIQUID GLASS + TACTILE MOTION)
+   ========================================================================== */
+
+/* --- Card Language --- */
+.bm-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-card);
+  position: relative;
+  transition: transform var(--spring-smooth), box-shadow var(--spring-smooth), border-color var(--transition-fast);
+}
+
+.bm-card:hover {
+  border-color: var(--border-card-hover);
+  box-shadow: var(--shadow-card-elevated);
+}
+
+.bm-card:active {
+  transform: scale(0.988);
+}
+
+/* Translucent Liquid Glass Card */
+.bm-card-glass {
+  background: var(--glass-bg-light);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-glass-float), var(--glass-highlight-inner);
+  position: relative;
+  transition: transform var(--spring-smooth), box-shadow var(--spring-smooth);
+}
+
+.bm-card-dark {
+  background: var(--gradient-card-dark);
+  border: 1px solid var(--glass-border-dark);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  color: var(--text-light);
+  box-shadow: 0 10px 28px rgba(11, 10, 24, 0.28), var(--glass-highlight-dark);
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--spring-smooth), box-shadow var(--spring-smooth);
+}
+
+.bm-card-dark::after {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle, rgba(139, 77, 255, 0.4) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.bm-card-dark:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 36px rgba(11, 10, 24, 0.35);
+}
+
+/* 2-Column Stat Cards */
+.bm-stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--spring-smooth), box-shadow var(--spring-smooth), border-color var(--transition-fast);
+  cursor: pointer;
+}
+
+.bm-stat-card:hover {
+  border-color: var(--color-lavender-border);
+  box-shadow: var(--shadow-card-elevated);
+  transform: translateY(-2px);
+}
+
+.bm-stat-card:active {
+  transform: scale(0.98);
+}
+
+/* Icon Box Container (Soft Lavender Background + Purple Icon) */
+.icon-box-purple {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--color-soft-lavender);
+  color: var(--color-primary-purple);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform var(--spring-bounce), background var(--transition-fast);
+}
+
+.icon-box-purple svg {
+  width: 20px;
+  height: 20px;
+  transition: transform var(--spring-bounce);
+}
+
+.bm-stat-card:hover .icon-box-purple,
+.promo-upgrade-card:hover .icon-box-purple {
+  transform: scale(1.08);
+  background: var(--color-lavender-hover);
+}
+
+.icon-box-purple.sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+.icon-box-purple.sm svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* --- Tactile & Premium Buttons --- */
+.btn-primary {
+  background: var(--gradient-purple);
+  color: #FFFFFF;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-md);
+  padding: 10px 22px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.45), 0 6px 18px rgba(109, 53, 245, 0.35);
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease, box-shadow 0.22s ease;
+  cursor: pointer;
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, transparent 60%);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1.5px);
+  box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.5), 0 8px 24px rgba(109, 53, 245, 0.45);
+}
+
+.btn-primary:active {
+  transform: scale(0.965);
+  filter: brightness(0.96);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(109, 53, 245, 0.3);
+}
+
+.btn-white {
+  background: #FFFFFF;
+  color: var(--color-primary-purple);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  padding: 8px 18px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12), inset 0 1px 1px #FFFFFF;
+  transition: transform var(--spring-bounce), filter var(--transition-fast), box-shadow var(--transition-fast);
+  cursor: pointer;
+}
+.btn-white:hover {
+  background: #FAF9FE;
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+}
+.btn-white:active {
+  transform: scale(0.965);
+}
+
+.btn-soft {
+  background: var(--color-soft-lavender);
+  color: var(--color-primary-purple);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  padding: 7px 15px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--color-lavender-border);
+  transition: transform var(--spring-bounce), background var(--transition-fast);
+}
+.btn-soft:hover {
+  background: var(--color-lavender-hover);
+  transform: translateY(-1px);
+}
+.btn-soft:active {
+  transform: scale(0.96);
+}
+
+/* Circular Action Shortcuts */
+.action-shortcut-group {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-around;
+  width: 100%;
+  margin-top: 14px;
+}
+
+.action-shortcut-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  transition: transform var(--spring-bounce);
+}
+.action-shortcut-item:active {
+  transform: scale(0.92);
+}
+
+.action-circle-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--spring-bounce), background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+.action-circle-btn svg {
+  width: 22px;
+  height: 22px;
+  transition: transform var(--spring-bounce);
+}
+
+.action-shortcut-item:hover .action-circle-btn {
+  background: rgba(139, 77, 255, 0.32);
+  border-color: rgba(186, 142, 255, 0.55);
+  box-shadow: 0 4px 18px rgba(109, 53, 245, 0.45);
+  transform: translateY(-2px);
+}
+.action-shortcut-item:hover .action-circle-btn svg {
+  transform: scale(1.08);
+}
+
+.action-shortcut-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-light-muted);
+  font-weight: var(--font-weight-medium);
+  transition: color var(--transition-fast);
+}
+.action-shortcut-item:hover .action-shortcut-label {
+  color: #FFFFFF;
+}
+
+/* Light Action Shortcuts (Used in Wallet) */
+.action-circle-btn.light {
+  background: var(--color-soft-lavender);
+  border: 1px solid var(--color-lavender-border);
+  color: var(--color-primary-purple);
+  box-shadow: 0 2px 8px rgba(109, 53, 245, 0.08), inset 0 1px 1px #FFFFFF;
+}
+.action-shortcut-item:hover .action-circle-btn.light {
+  background: var(--gradient-purple);
+  color: #FFFFFF;
+  border-color: transparent;
+  box-shadow: 0 6px 18px rgba(109, 53, 245, 0.35);
+}
+.action-shortcut-label.light {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+.action-shortcut-item:hover .action-shortcut-label.light {
+  color: var(--color-primary-purple);
+}
+
+/* --- Badges & Status Indicators --- */
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3.5px 9.5px;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.2px;
+}
+
+.badge-status.active {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success-border);
+}
+
+/* Subtle Breathing Glow for Active Mining */
+.badge-status.active .dot {
+  width: 6.5px;
+  height: 6.5px;
+  border-radius: 50%;
+  background: var(--color-success);
+  display: inline-block;
+  animation: miningBreathe 2.4s infinite ease-in-out;
+}
+
+.badge-status.inactive {
+  background: #F1F1F5;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+.badge-status.inactive .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  display: inline-block;
+}
+
+.badge-status.lavender {
+  background: var(--color-soft-lavender);
+  color: var(--color-primary-purple);
+  border: 1px solid var(--color-lavender-border);
+}
+
+/* Percentage Badges */
+.pct-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2.5px 7.5px;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  transition: transform var(--spring-bounce);
+}
+.pct-pill.gain {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+.pct-pill.loss {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+.pct-pill.glass-light {
+  background: rgba(18, 183, 106, 0.18);
+  color: #2CD693;
+  border: 1px solid rgba(44, 214, 147, 0.3);
+  backdrop-filter: blur(8px);
+}
+
+/* Liquid Glass Filter Pills */
+.filter-pills-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0;
+  scrollbar-width: none;
+}
+.filter-pills-row::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-pill {
+  padding: 7px 16px;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition: transform var(--spring-bounce), background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+}
+.filter-pill:hover {
+  background: #FFFFFF;
+  color: var(--text-primary);
+  border-color: var(--color-lavender-border);
+  transform: translateY(-1px);
+}
+.filter-pill:active {
+  transform: scale(0.96);
+}
+.filter-pill.active {
+  background: var(--gradient-purple);
+  color: #FFFFFF;
+  font-weight: var(--font-weight-semibold);
+  border-color: transparent;
+  box-shadow: 0 3px 10px rgba(109, 53, 245, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+
+/* Environment / Network Selector Pill */
+.network-pill {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius-pill);
+  padding: 4.5px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: transform var(--spring-bounce), background var(--transition-fast);
+  backdrop-filter: blur(8px);
+}
+.network-pill:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+.network-pill .pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-success);
+  box-shadow: 0 0 8px var(--color-success);
+  animation: miningBreathe 2s infinite ease-in-out;
+}
+
+/* --- Refined Progress Bars with Traveling Highlight Shimmer --- */
+.bm-progress-track {
+  width: 100%;
+  height: 7px;
+  background: #EBEBF2;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.bm-progress-fill {
+  height: 100%;
+  background: var(--gradient-progress);
+  border-radius: var(--radius-pill);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(109, 53, 245, 0.45);
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Traveling Highlight Shimmer Beam */
+.bm-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 50%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.55) 50%, transparent 100%);
+  animation: progressShimmer 2.2s infinite ease-in-out;
+}
+
+/* --- Grouped List Section (Profile / Settings) --- */
+.grouped-list-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.grouped-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13.5px 16px;
+  border-bottom: 1px solid #F2F2F7;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--spring-bounce);
+}
+.grouped-list-item:last-child {
+  border-bottom: none;
+}
+.grouped-list-item:hover {
+  background: #FBFBFE;
+}
+.grouped-list-item:active {
+  background: #F4F0FD;
+  transform: scale(0.99);
+}
+
+.grouped-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.grouped-item-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: #F3EEFE;
+  color: var(--color-primary-purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform var(--spring-bounce);
+}
+.grouped-item-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.grouped-list-item:hover .grouped-item-icon {
+  transform: scale(1.08);
+}
+
+.grouped-item-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.grouped-item-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+}
+.grouped-item-right svg {
+  width: 16px;
+  height: 16px;
+  transition: transform var(--spring-bounce);
+}
+.grouped-list-item:hover .grouped-item-right svg {
+  transform: translateX(2px);
+}
+
+/* ==========================================================================
+   FLOATING LIQUID-GLASS BOTTOM NAVIGATION BAR
+   ========================================================================== */
+.bm-bottom-nav-wrapper {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  right: 14px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.bm-bottom-nav {
+  position: relative;
+  height: 64px;
+  background: var(--glass-bg-floating);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border-light);
+  border-radius: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 6px;
+  box-shadow: var(--shadow-glass-float), var(--glass-highlight-inner);
+  pointer-events: auto;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5px;
+  height: 100%;
+  flex: 1;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+  color: var(--text-secondary);
+  position: relative;
+  z-index: 2;
+}
+
+.nav-icon-container {
+  width: 42px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--spring-bounce), background var(--spring-smooth);
+}
+
+.nav-icon-container svg {
+  width: 20px;
+  height: 20px;
+  transition: transform var(--spring-bounce), stroke var(--transition-fast);
+}
+
+.nav-item-label {
+  font-size: 10px;
+  font-weight: var(--font-weight-medium);
+  transition: color var(--transition-fast), font-weight var(--transition-fast);
+}
+
+/* Active State with Soft Lavender Pill Highlight */
+.nav-item.active {
+  color: var(--color-primary-purple);
+}
+.nav-item.active .nav-icon-container {
+  background: var(--color-soft-lavender);
+  box-shadow: 0 2px 8px rgba(109, 53, 245, 0.12);
+}
+.nav-item.active .nav-icon-container svg {
+  stroke: var(--color-primary-purple);
+  stroke-width: 2.3px;
+  transform: translateY(-1.5px) scale(1.05);
+}
+.nav-item.active .nav-item-label {
+  color: var(--color-primary-purple);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ==========================================================================
+   MODERN BOTTOM SHEET / MODAL COMPONENT
+   ========================================================================== */
+.bm-bottom-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 10, 24, 0.52);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 500;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.bm-bottom-sheet-backdrop.active {
+  display: block;
+  opacity: 1;
+}
+
+.bm-bottom-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #FFFFFF;
+  border-radius: 28px 28px 0 0;
+  padding: 16px 20px 32px 20px;
+  box-shadow: 0 -14px 45px rgba(11, 10, 24, 0.28);
+  z-index: 501;
+  transform: translateY(100%);
+  transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.bm-bottom-sheet.active {
+  transform: translateY(0);
+}
+
+.sheet-drag-handle {
+  width: 40px;
+  height: 4.5px;
+  border-radius: 9999px;
+  background: #D8D8E4;
+  margin: 0 auto 6px auto;
+  cursor: pointer;
+}
+
+.sheet-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sheet-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+.sheet-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #F1F1F6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.sheet-close-btn:hover {
+  background: var(--color-soft-lavender);
+  color: var(--color-primary-purple);
+}

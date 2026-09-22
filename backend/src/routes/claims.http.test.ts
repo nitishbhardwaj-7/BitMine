@@ -8,6 +8,7 @@ import { makeSsvSigner } from "../test/ssv.js";
 import { seedAll } from "../db/seed.js";
 import { signAccessToken } from "../auth/tokens.js";
 import { createApp } from "../app.js";
+import { baseAuthOptions } from "../test/auth.js";
 
 const SECRET = "test-secret-at-least-32-characters-long!!";
 const ssv = makeSsvSigner();
@@ -22,7 +23,7 @@ beforeAll(async () => {
   // Uses the real clock: a run within ~10 minutes of UTC midnight could see the claim land on the next day.
   userId = await createUser("UTC");
   token = await signAccessToken(String(userId), SECRET);
-  server = createApp({ corsOrigins: [], jwtAccessSecret: SECRET, ssv: ssv.verifier, store: { allowSandbox: false } }).listen(0);
+  server = createApp({ ...(await baseAuthOptions()).options, corsOrigins: [], jwtAccessSecret: SECRET, ssv: ssv.verifier, store: { allowSandbox: false } }).listen(0);
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }, 180_000);
 

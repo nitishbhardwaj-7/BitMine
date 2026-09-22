@@ -22,6 +22,15 @@ const schema = z.object({
   // Payouts: optional so the API runs before Speed is set up; payouts pause until set.
   SPEED_API_KEY: z.string().optional().transform((v) => v || undefined),
   SPEED_API_BASE: z.string().url().default("https://api.tryspeed.com"),
+  // Sign-in with Google / Apple: ID token audiences (public identifiers, not secrets).
+  GOOGLE_CLIENT_IDS: z
+    .string()
+    .default("")
+    .transform((s) => s.split(",").map((v) => v.trim()).filter(Boolean)),
+  APPLE_BUNDLE_ID: z.string().optional().transform((v) => v || undefined),
+  // Email (Brevo). Without a key, codes are logged in development and email fails in production.
+  BREVO_API_KEY: z.string().optional().transform((v) => v || undefined),
+  MAIL_FROM: z.string().optional().transform((v) => v || undefined),
   ADMOB_SSV_KEYS_URL: z.string().url().default("https://www.gstatic.com/admob/reward/verifier-keys.json"),
 });
 

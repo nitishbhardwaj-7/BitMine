@@ -33,6 +33,10 @@ const userSchema = new Schema(
     twoFactor: { enabled: { type: Boolean, default: false } },
     status: { type: String, enum: ["active", "suspended", "deleted"], default: "active" },
     deviceIds: { type: [String], default: [] },
+    /** Failed password attempts in the current 15-minute window (login lockout). */
+    failedLogins: { count: { type: Number, default: 0 }, windowStart: Date },
+    lockUntil: Date,
+    deletedAt: Date,
     /** Reasons an admin should look before paying this user (e.g. a refunded purchase). */
     reviewFlags: {
       type: [{ reason: String, refType: String, refId: ObjectId, createdAt: Date, _id: false }],
@@ -179,6 +183,52 @@ const superEntitlementSchema = new Schema(
 );
 superEntitlementSchema.index({ userId: 1, productId: 1 }, { unique: true });
 
+// ── otps: one-time email codes ───────────────────────────────────────────
+const otpSchema = new Schema(
+  {
+    userId: { type: ObjectId, ref: "User" },
+    email: { type: String, required: true, lowercase: true },
+    purpose: {
+      type: String,
+      enum: ["verify_email", "login_2fa", "reset_password", "change_email", "enable_2fa", "disable_2fa", "withdrawal"],
+      required: true,
+    },
+    codeHash: { type: String, required: true },
+    attempts: { type: Number, default: 0 },
+    expiresAt: { type: Date, required: true },
+    consumedAt: Date,
+  },
+  { timestamps: { createdAt: true, updatedAt: false } },
+);
+otpSchema.index({ email: 1, purpose: 1, createdAt: -1 });
+// MongoDB deletes codes a day after they expire.
+otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 24 * 60 * 60 });
+
+// ── refreshTokens: rotated, stored hashed ────────────────────────────────
+const refreshTokenSchema = new Schema(
+  {
+    userId: { type: ObjectId, ref: "User", required: true },
+    familyId: { type: String, required: true },
+    tokenHash: { type: String, required: true },
+    expiresAt: { type: Date, required: true },
+    revokedAt: Date,
+    replacedBy: { type: ObjectId },
+    deviceId: String,
+  },
+  { timestamps: { createdAt: true, updatedAt: false } },
+);
+refreshTokenSchema.index({ userId: 1 });
+refreshTokenSchema.index({ familyId: 1 });
+refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 7 * 24 * 60 * 60 });
+
+// ── rateLimits: fixed-window counters ───────────────────────────────────
+const rateLimitSchema = new Schema({
+  _id: { type: String },
+  count: { type: Number, default: 0 },
+  expireAt: { type: Date, required: true },
+});
+rateLimitSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
+
 // ── storeSyncs: follow-up RevenueCat checks after a purchase ────────────
 const storeSyncSchema = new Schema(
   {
@@ -282,6 +332,9 @@ export const Claim = mongoose.model("Claim", claimSchema);
 export const Purchase = mongoose.model("Purchase", purchaseSchema);
 export const SuperEntitlement = mongoose.model("SuperEntitlement", superEntitlementSchema);
 export const StoreSync = mongoose.model("StoreSync", storeSyncSchema);
+export const Otp = mongoose.model("Otp", otpSchema);
+export const RefreshToken = mongoose.model("RefreshToken", refreshTokenSchema);
+export const RateLimit = mongoose.model("RateLimit", rateLimitSchema);
 export const Ledger = mongoose.model("Ledger", ledgerSchema);
 export const Balance = mongoose.model("Balance", balanceSchema);
 export const Withdrawal = mongoose.model("Withdrawal", withdrawalSchema);

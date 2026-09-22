@@ -9,6 +9,7 @@ import { fakeRevenueCat } from "../test/revenuecat.js";
 import { seedAll } from "../db/seed.js";
 import { signAccessToken } from "../auth/tokens.js";
 import { createApp } from "../app.js";
+import { baseAuthOptions } from "../test/auth.js";
 import { MS_PER_HOUR } from "../lib/time.js";
 import { ensureBalance } from "../wallet/balances.js";
 import { runAccrual } from "../mining/accrualJob.js";
@@ -23,6 +24,7 @@ let base: string;
 beforeAll(async () => {
   await startTestDb();
   server = createApp({
+    ...(await baseAuthOptions()).options,
     corsOrigins: [],
     jwtAccessSecret: SECRET,
     ssv: makeSsvSigner().verifier,

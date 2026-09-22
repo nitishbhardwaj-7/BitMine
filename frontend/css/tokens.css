@@ -1,0 +1,124 @@
+:root {
+  /* ==========================================================================
+     BITMINE REFINED DESIGN TOKENS (PREMIUM CRYPTO-FINTECH + LIQUID GLASS)
+     ========================================================================== */
+
+  /* Core Brand Colors */
+  --bg-deep-navy: #0B0A18;
+  --bg-dark-purple: #25105C;
+  --color-primary-purple: #6D35F5;
+  --color-bright-violet: #8B4DFF;
+  --color-soft-lavender: #F0EAFE;
+  --color-lavender-border: #E4D8FD;
+  --color-lavender-hover: #ECE2FD;
+  --color-purple-tint: rgba(109, 53, 245, 0.08);
+
+  /* Clean Backgrounds & Surfaces */
+  --bg-page: #F7F7FA;
+  --bg-card: #FFFFFF;
+  --bg-card-secondary: #F4F4F8;
+  --bg-input: #F3F3F8;
+
+  /* Liquid Glass Surfaces */
+  --glass-bg-light: rgba(255, 255, 255, 0.68);
+  --glass-bg-floating: rgba(255, 255, 255, 0.76);
+  --glass-bg-elevated: rgba(255, 255, 255, 0.88);
+  --glass-bg-dark: rgba(25, 14, 52, 0.65);
+  --glass-border-light: rgba(255, 255, 255, 0.85);
+  --glass-border-subtle: rgba(255, 255, 255, 0.5);
+  --glass-border-dark: rgba(139, 77, 255, 0.3);
+  --glass-highlight-inner: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95);
+  --glass-highlight-dark: inset 0 1px 1px 0 rgba(255, 255, 255, 0.18);
+  --glass-blur-sm: blur(14px);
+  --glass-blur-md: blur(24px);
+  --glass-blur-lg: blur(32px);
+
+  /* Typography Colors */
+  --text-primary: #171622;
+  --text-secondary: #858394;
+  --text-muted: #A3A1B2;
+  --text-light: #FFFFFF;
+  --text-light-muted: rgba(255, 255, 255, 0.72);
+  --text-purple: #6D35F5;
+
+  /* Semantic Status Colors */
+  --color-success: #12B76A;
+  --color-success-bg: #E8F8F0;
+  --color-success-border: #C6F0DC;
+
+  --color-danger: #F04438;
+  --color-danger-bg: #FEE4E2;
+  --color-danger-border: #FECDCA;
+
+  --color-warning: #F79009;
+  --color-warning-bg: #FEF0C7;
+
+  /* Subtle Borders & Dividers */
+  --border-subtle: #EBEBF2;
+  --border-card: #EAEAEF;
+  --border-card-hover: #DCD9F5;
+  --border-focus: #6D35F5;
+
+  /* Gradients */
+  --gradient-hero: linear-gradient(155deg, #0B0A18 0%, #160B30 45%, #25105C 100%);
+  --gradient-hero-shift: linear-gradient(135deg, #0B0A18 0%, #1A0D38 40%, #281163 80%, #1E0A47 100%);
+  --gradient-purple: linear-gradient(135deg, #5B2BE8 0%, #8B4DFF 100%);
+  --gradient-purple-glow: linear-gradient(135deg, #6E3BFF 0%, #A066FF 100%);
+  --gradient-card-dark: linear-gradient(140deg, #180F33 0%, #291263 100%);
+  --gradient-banner: linear-gradient(135deg, #2D146D 0%, #4E21B8 50%, #7B3EF3 100%);
+  --gradient-shimmer: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.35) 50%, transparent 100%);
+  --gradient-progress: linear-gradient(90deg, #5B2BE8 0%, #8B4DFF 60%, #B588FF 100%);
+
+  /* Typography */
+  --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 14px;
+  --font-size-base: 15px;
+  --font-size-lg: 17px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 28px;
+  --font-size-4xl: 32px;
+
+  /* Font Weights */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* Spacing Grid (8px/12px) */
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 20px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+
+  /* Corner Radii (Smooth 16px - 22px) */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --radius-2xl: 28px;
+  --radius-pill: 9999px;
+
+  /* Layered Refined Shadows */
+  --shadow-subtle: 0 2px 6px -1px rgba(23, 22, 34, 0.03), 0 1px 3px 0 rgba(23, 22, 34, 0.02);
+  --shadow-card: 0 4px 18px -2px rgba(23, 22, 34, 0.05), 0 2px 6px -1px rgba(23, 22, 34, 0.02);
+  --shadow-card-elevated: 0 10px 28px -4px rgba(23, 22, 34, 0.08), 0 3px 10px -2px rgba(23, 22, 34, 0.03);
+  --shadow-glass-float: 0 14px 36px -4px rgba(15, 14, 25, 0.12), 0 4px 12px -2px rgba(109, 53, 245, 0.05);
+  --shadow-purple-soft: 0 8px 24px -2px rgba(109, 53, 245, 0.32);
+  --shadow-purple-pulse: 0 0 18px rgba(139, 77, 255, 0.45);
+  --shadow-nav: 0 10px 30px rgba(15, 14, 25, 0.08);
+
+  /* Spring Physics & Fluid Motion Curves */
+  --spring-bounce: 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-page: 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+}

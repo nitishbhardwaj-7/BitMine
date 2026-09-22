@@ -4,11 +4,28 @@ import { createApp } from "./app.js";
 import { logger } from "./lib/logger.js";
 import { SsvVerifier, httpKeyFetcher } from "./claims/admobSsv.js";
 import { httpRevenueCatClient } from "./store/revenuecat.js";
+import { brevoMailer, devLogMailer, disabledMailer } from "./auth/mailer.js";
+import { socialVerifier } from "./auth/social.js";
 
 const config = env();
 await connectDb(config.MONGODB_URI);
 
+const mailer =
+  config.BREVO_API_KEY && config.MAIL_FROM
+    ? brevoMailer(config.BREVO_API_KEY, config.MAIL_FROM)
+    : config.NODE_ENV === "production"
+      ? disabledMailer()
+      : devLogMailer();
+if (!config.BREVO_API_KEY) {
+  logger.warn(`BREVO_API_KEY not set: emails are ${config.NODE_ENV === "production" ? "disabled" : "logged to the console"}`);
+}
+
 const app = createApp({
+  mailer,
+  social: socialVerifier({
+    googleClientIds: config.GOOGLE_CLIENT_IDS,
+    appleAudiences: config.APPLE_BUNDLE_ID ? [config.APPLE_BUNDLE_ID] : [],
+  }),
   corsOrigins: config.CORS_ORIGINS,
   jwtAccessSecret: config.JWT_ACCESS_SECRET,
   ssv: new SsvVerifier(httpKeyFetcher(config.ADMOB_SSV_KEYS_URL)),

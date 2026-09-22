@@ -47,7 +47,8 @@ The tests start their own throwaway MongoDB replica set. The first run downloads
 | `src/claims/service.ts` | Ad claims, daily caps, Super Miner tiers |
 | `src/claims/admobSsv.ts` | AdMob callback signature verification |
 | `src/routes/` | `/v1` API and `/webhooks` |
-| `src/auth/` | Access-token check (login flows come with the auth module) |
+| `src/auth/` | Sign-up, sign-in (email, Google, Apple), email codes, 2FA, tokens |
+| `src/users/profile.ts` | Account settings: password, email, 2FA, timezone, referral, deletion |
 | `src/store/service.ts` | Purchases: grants, stacking, Super Miner extensions, backfill, refunds |
 | `src/store/revenuecat.ts` | RevenueCat REST client |
 | `src/wallet/withdrawals.ts` | Withdrawal requests, locking, admin approve/reject/reconcile |

@@ -8,6 +8,9 @@ import { logger } from "./lib/logger.js";
 import { AppError } from "./lib/errors.js";
 import type { SsvVerifier } from "./claims/admobSsv.js";
 import type { StoreDeps } from "./store/service.js";
+import type { Mailer } from "./auth/mailer.js";
+import type { SocialVerifier } from "./auth/social.js";
+import { authRouter } from "./routes/auth.js";
 import { v1Router } from "./routes/v1.js";
 import { webhooksRouter } from "./routes/webhooks.js";
 
@@ -18,6 +21,8 @@ export interface AppOptions {
   store: StoreDeps;
   /** Value RevenueCat sends in the Authorization header of webhooks. */
   revenueCatWebhookAuth?: string;
+  mailer: Mailer;
+  social: SocialVerifier;
 }
 
 export function createApp(opts: AppOptions) {
@@ -39,7 +44,8 @@ export function createApp(opts: AppOptions) {
   });
 
   app.use("/webhooks", webhooksRouter({ ssv: opts.ssv, store: opts.store, revenueCatWebhookAuth: opts.revenueCatWebhookAuth }));
-  app.use("/v1", v1Router({ jwtAccessSecret: opts.jwtAccessSecret, store: opts.store }));
+  app.use("/v1/auth", authRouter({ mailer: opts.mailer, social: opts.social, jwtAccessSecret: opts.jwtAccessSecret }));
+  app.use("/v1", v1Router({ jwtAccessSecret: opts.jwtAccessSecret, store: opts.store, mailer: opts.mailer }));
 
   app.use((_req, res) => {
     res.status(404).json({ error: "not_found", message: "Not found." });

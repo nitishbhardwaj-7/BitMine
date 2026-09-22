@@ -1,0 +1,365 @@
+/* ==========================================================================
+   INTERACTIVE SIMULATOR & MULTI-SCREEN SHOWCASE WRAPPER
+   ========================================================================== */
+
+.app-viewport-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #0A0915;
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(109, 53, 245, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(139, 77, 255, 0.08) 0%, transparent 45%);
+  overflow-x: hidden;
+}
+
+/* --- Top Simulator Bar --- */
+.sim-toolbar {
+  height: 60px;
+  background: rgba(16, 15, 30, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 1000;
+  position: sticky;
+  top: 0;
+}
+
+.sim-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sim-logo-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--gradient-purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-weight: 800;
+  font-size: 15px;
+  box-shadow: 0 4px 12px rgba(109, 53, 245, 0.4);
+}
+
+.sim-brand-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -0.2px;
+}
+
+.sim-brand-sub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+}
+
+/* View Mode Switcher Pills */
+.sim-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sim-mode-toggle {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-pill);
+  padding: 4px;
+  display: flex;
+  gap: 4px;
+}
+
+.sim-mode-btn {
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sim-mode-btn.active {
+  background: var(--color-primary-purple);
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(109, 53, 245, 0.35);
+}
+
+.screen-jumper-select {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #FFFFFF;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.screen-jumper-select option {
+  background: #151426;
+  color: #FFFFFF;
+}
+
+/* --- Single Phone Simulator Workspace --- */
+.single-simulator-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 16px 50px 16px;
+}
+
+/* Phone Frame (iPhone 16 Pro Dimensions & Styling) */
+.phone-chassis {
+  width: 400px;
+  height: 844px;
+  background: #000000;
+  border-radius: 52px;
+  padding: 12px;
+  box-shadow: 
+    0 0 0 4px #262438,
+    0 0 0 8px #131221,
+    0 25px 60px rgba(0, 0, 0, 0.75),
+    0 8px 30px rgba(109, 53, 245, 0.25);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--transition-normal);
+}
+
+.phone-screen-inner {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-page);
+  border-radius: 42px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Phone Status Bar */
+.phone-status-bar {
+  height: 44px;
+  padding: 0 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+  z-index: 120;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+/* Adapt status bar text color based on screen */
+.phone-status-bar.dark-text {
+  color: #171622;
+}
+.phone-status-bar.light-text {
+  color: #FFFFFF;
+}
+
+/* Dynamic Island */
+.dynamic-island {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 116px;
+  height: 30px;
+  background: #000000;
+  border-radius: 20px;
+  z-index: 130;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+}
+
+.island-camera {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #0D0F16;
+  border: 1px solid #1E2333;
+}
+.island-sensor {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #080A0E;
+}
+
+.status-bar-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.status-bar-icons svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Bottom Home Indicator */
+.phone-home-indicator {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 134px;
+  height: 4px;
+  background: #171622;
+  opacity: 0.3;
+  border-radius: 10px;
+  z-index: 120;
+  pointer-events: none;
+}
+
+/* --- Multi-Screen 10-Grid Gallery View (Matching Reference Mockup!) --- */
+.multi-gallery-stage {
+  display: none;
+  padding: 40px 24px 80px 24px;
+  max-width: 1980px;
+  margin: 0 auto;
+}
+
+.multi-gallery-stage.active {
+  display: block;
+}
+
+.gallery-section-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+.gallery-section-header h2 {
+  font-size: 26px;
+  font-weight: 800;
+  color: #FFFFFF;
+  letter-spacing: -0.3px;
+  margin-bottom: 6px;
+}
+.gallery-section-header p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.screens-grid-container {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 24px;
+  justify-items: center;
+}
+
+@media (max-width: 1800px) {
+  .screens-grid-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 1200px) {
+  .screens-grid-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 768px) {
+  .screens-grid-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gallery-screen-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.gallery-screen-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gallery-screen-title .screen-num-pill {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-primary-purple);
+  color: #FFFFFF;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gallery-phone-frame {
+  width: 330px;
+  height: 690px;
+  background: #000000;
+  border-radius: 44px;
+  padding: 9px;
+  box-shadow: 
+    0 0 0 3px #262438,
+    0 16px 40px rgba(0, 0, 0, 0.6);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.gallery-phone-frame:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 0 0 3px var(--color-primary-purple),
+    0 20px 50px rgba(109, 53, 245, 0.35);
+}
+
+.gallery-phone-frame .phone-screen-inner {
+  border-radius: 36px;
+}
+
+/* Toast Notification */
+.bm-toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(40px);
+  background: rgba(23, 22, 34, 0.94);
+  color: #FFFFFF;
+  border: 1px solid rgba(139, 77, 255, 0.4);
+  backdrop-filter: blur(12px);
+  padding: 10px 22px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  z-index: 2000;
+  opacity: 0;
+  pointer-events: none;
+  transition: all var(--transition-smooth);
+}
+.bm-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}

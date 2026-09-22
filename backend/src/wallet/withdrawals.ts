@@ -16,6 +16,8 @@ import { AppError, notFound } from "../lib/errors.js";
 import { logger } from "../lib/logger.js";
 import { getEconomics } from "../settings/economics.js";
 import { parseDestination } from "./destination.js";
+import { consumeOtp, sendOtp } from "../auth/otp.js";
+import type { Mailer } from "../auth/mailer.js";
 
 export const OPEN_STATUSES = ["pending_review", "approved", "sending", "needs_reconcile"] as const;
 type WithdrawalStatus = "pending_review" | "approved" | "sending" | "paid" | "failed" | "rejected" | "needs_reconcile";
@@ -101,7 +103,7 @@ function view(w: {
   };
 }
 
-export async function requestWithdrawal(userId: Types.ObjectId, input: { amountSats: number; destination: string }, now = Date.now()) {
+export async function requestWithdrawal(userId: Types.ObjectId, input: { amountSats: number; destination: string; code?: string }, now = Date.now()) {
   const settings = await getEconomics(new Date(now));
   const { amountSats } = input;
   if (!Number.isSafeInteger(amountSats) || amountSats <= 0) {
@@ -114,9 +116,12 @@ export async function requestWithdrawal(userId: Types.ObjectId, input: { amountS
   }
   const dest = parseDestination(input.destination, amountSats, now);
 
-  const user = await User.findById(userId).select({ status: 1, reviewFlags: 1 }).lean();
+  const user = await User.findById(userId).select({ status: 1, reviewFlags: 1, email: 1, twoFactor: 1 }).lean();
   if (!user || user.status !== "active") throw new AppError(403, "account_inactive", "This account can't make withdrawals.");
-  // TODO(auth module): require a fresh 2FA code here when the user has 2FA enabled.
+  if (user.twoFactor?.enabled) {
+    if (!input.code) throw new AppError(403, "code_required", "Enter the code we emailed you to confirm this withdrawal.");
+    await consumeOtp({ email: user.email, purpose: "withdrawal", code: input.code }, now);
+  }
 
   const autoApprove =
     settings.withdrawalAutoApproveMaxSats > 0 && amountSats <= settings.withdrawalAutoApproveMaxSats && (user.reviewFlags?.length ?? 0) === 0;
@@ -147,6 +152,15 @@ export async function requestWithdrawal(userId: Types.ObjectId, input: { amountS
     }
     throw err;
   }
+}
+
+/** Emails a withdrawal confirmation code (only needed with two-step verification on). */
+export async function sendWithdrawalCode(mailer: Mailer, userId: Types.ObjectId) {
+  const user = await User.findById(userId).select({ email: 1, twoFactor: 1, status: 1 }).lean();
+  if (!user || user.status !== "active") throw new AppError(403, "account_inactive", "This account can't make withdrawals.");
+  if (!user.twoFactor?.enabled) return { required: false };
+  await sendOtp(mailer, { email: user.email, purpose: "withdrawal", userId });
+  return { required: true, sent: true };
 }
 
 export async function listWithdrawals(userId: Types.ObjectId) {
