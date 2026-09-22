@@ -2,15 +2,28 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BitMine — BTC Cloud Mining UI/UX Design System</title>
-  <meta name="description" content="Production-ready UI/UX design language and interactive mobile prototype for BitMine — BTC Cloud Mining application.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0B0A18">
+  <title>BitMine</title>
+  <meta name="description" content="BitMine — cloud Bitcoin mining rewards with Lightning withdrawals.">
+  <script>
+    // Phone app (Capacitor), a phone browser, or ?device=1 → full-screen app.
+    // Otherwise the desktop simulator frame is shown.
+    (function () {
+      var q = new URLSearchParams(location.search);
+      var native = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+      if (native || q.has('device') || (window.matchMedia('(max-width: 600px)').matches && !q.has('sim'))) {
+        document.documentElement.classList.add('device');
+      }
+    })();
+  </script>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236D35F5'><circle cx='12' cy='12' r='10'/><path d='M12 6v12M16 10H9.5a2.5 2.5 0 0 0 0 5H14' stroke='white' stroke-width='2'/></svg>">
   <link rel="stylesheet" href="./css/tokens.css">
   <link rel="stylesheet" href="./css/base.css">
   <link rel="stylesheet" href="./css/components.css">
   <link rel="stylesheet" href="./css/screens.css">
   <link rel="stylesheet" href="./css/simulator.css">
+  <link rel="stylesheet" href="./css/app.css">
 </head>
 <body>
   <div class="app-viewport-root">
@@ -20,7 +33,7 @@
         <div class="sim-logo-badge">₿</div>
         <div>
           <h1 class="sim-brand-title">BitMine — BTC Cloud Mining</h1>
-          <p class="sim-brand-sub">UI/UX Design Language & Interactive Mobile Prototype</p>
+          <p class="sim-brand-sub">Live app · connected to the BitMine backend</p>
         </div>
       </div>
 
@@ -31,27 +44,53 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="2" width="14" height="20" rx="4"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
             Interactive Device
           </button>
-          <button class="sim-mode-btn" id="btnModeGallery" title="View all 10 screens side-by-side (like reference photo)">
+          <button class="sim-mode-btn" id="btnModeGallery" title="View the main screens side by side">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
-            10-Screen Grid
+            Screen Grid
           </button>
         </div>
 
         <!-- Direct Screen Jumper -->
         <select class="screen-jumper-select" id="screenJumperSelect" aria-label="Jump directly to screen">
-          <optgroup label="Main Bottom Tabs">
-            <option value="home">1. Home (BitMine)</option>
-            <option value="wallet">2. Wallet</option>
-            <option value="miners">3. My Miners</option>
-            <option value="market">4. Market</option>
-            <option value="profile">5. Profile</option>
+          <optgroup label="Main tabs">
+            <option value="home">Home</option>
+            <option value="wallet">Wallet</option>
+            <option value="miners">My Miners</option>
+            <option value="market">Market</option>
+            <option value="profile">Profile</option>
           </optgroup>
-          <optgroup label="Secondary Detail Screens">
-            <option value="miner-details">6. Miner Details</option>
-            <option value="rewards">7. Rewards (Invite & Earn)</option>
-            <option value="news">8. News</option>
-            <option value="academy">9. Academy</option>
-            <option value="settings">10. Settings</option>
+          <optgroup label="Mining">
+            <option value="mining">Boost (claims)</option>
+            <option value="store">Store</option>
+            <option value="miner-details">Miner Details</option>
+          </optgroup>
+          <optgroup label="Wallet & rewards">
+            <option value="transactions">Transactions</option>
+            <option value="rewards">Rewards (Invite &amp; Earn)</option>
+            <option value="purchases">Purchases</option>
+          </optgroup>
+          <optgroup label="Content">
+            <option value="news">News</option>
+            <option value="academy">Academy</option>
+            <option value="lesson">Lesson</option>
+            <option value="faq">FAQ</option>
+          </optgroup>
+          <optgroup label="Account">
+            <option value="notifications">Notifications</option>
+            <option value="settings">Settings</option>
+            <option value="account">My Account</option>
+            <option value="security">Security &amp; 2FA</option>
+            <option value="notification-settings">Notification settings</option>
+            <option value="support">Help &amp; Support</option>
+            <option value="new-ticket">New support request</option>
+            <option value="ticket">Support request</option>
+            <option value="delete-account">Delete Account</option>
+          </optgroup>
+          <optgroup label="Sign-in">
+            <option value="welcome">Welcome</option>
+            <option value="signin">Sign in</option>
+            <option value="signup">Create account</option>
+            <option value="forgot">Forgot password</option>
           </optgroup>
         </select>
       </div>
@@ -145,7 +184,7 @@
     <!-- 2. Multi-Screen 10-Grid Gallery View (Matching User Reference Mockup) -->
     <section class="multi-gallery-stage" id="multiGalleryStage">
       <div class="gallery-section-header">
-        <h2>BitMine — Complete 10-Screen UI/UX Architecture</h2>
+        <h2>BitMine — Screens</h2>
         <p>Click any screen to open it interactively in the mobile device simulator</p>
       </div>
       <div class="screens-grid-container" id="screensGridContainer">

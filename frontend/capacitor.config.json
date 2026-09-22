@@ -1,0 +1,26 @@
+{
+  "appId": "com.bitmine.app",
+  "appName": "BitMine",
+  "webDir": "dist",
+  "backgroundColor": "#0B0A18",
+  "ios": {
+    "contentInset": "never"
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "backgroundColor": "#0B0A18",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "overlaysWebView": true,
+      "style": "DARK"
+    },
+    "AdMob": {
+      "comment": "The AdMob App IDs go in AndroidManifest.xml / Info.plist after `npx cap add` (see docs/MOBILE_SETUP.md)."
+    }
+  }
+}

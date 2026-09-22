@@ -25,10 +25,10 @@ html, body {
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: 96px; /* ample space for floating glass bottom nav */
+  padding-bottom: calc(var(--safe-area-bottom, 34px) + 64px); /* safe area + floating glass bottom nav */
   background: var(--bg-page);
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   scrollbar-width: none; /* Firefox */
 }
 .screen-scroll-view::-webkit-scrollbar {
@@ -216,3 +216,23 @@ img {
   animation: skeletonShimmer 1.8s ease-in-out infinite;
   border-radius: var(--radius-sm);
 }
+
+/* ==========================================================================
+   SAFE AREA VIEW ARCHITECTURE (NOTCH & SYSTEM INSETS PROTECTION)
+   ========================================================================== */
+.safe-area-view {
+  padding-top: var(--safe-area-top);
+  padding-bottom: var(--safe-area-bottom);
+  box-sizing: border-box;
+}
+
+.safe-area-top {
+  padding-top: var(--safe-area-top) !important;
+  box-sizing: border-box;
+}
+
+.safe-area-bottom {
+  padding-bottom: var(--safe-area-bottom) !important;
+  box-sizing: border-box;
+}
+

@@ -51,6 +51,7 @@ export function publicRouter(opts: { market?: MarketCache } = {}) {
       termsUrl: cfg?.termsUrl,
       privacyUrl: cfg?.privacyUrl,
       economics: {
+        rateMsatPerGhDay: eco.rateMsatPerGhDay,
         claimGh: eco.claimGh,
         claimsPerDay: eco.claimsPerDay,
         minWithdrawalSats: eco.minWithdrawalSats,

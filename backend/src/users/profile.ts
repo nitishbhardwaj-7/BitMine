@@ -26,7 +26,16 @@ async function load(userId: Types.ObjectId, withPassword = false) {
 
 export async function getMe(userId: Types.ObjectId) {
   const u = await load(userId);
-  return { ...publicUser(u), timezonePending: u.timezonePending?.tz ? { timezone: u.timezonePending.tz, effectiveAt: u.timezonePending.effectiveAt?.toISOString() } : null };
+  return {
+    ...publicUser(u),
+    timezonePending: u.timezonePending?.tz ? { timezone: u.timezonePending.tz, effectiveAt: u.timezonePending.effectiveAt?.toISOString() } : null,
+    notificationPrefs: {
+      miningReminder: u.notificationPrefs?.miningReminder !== false,
+      minerExpiry: u.notificationPrefs?.minerExpiry !== false,
+      withdrawals: u.notificationPrefs?.withdrawals !== false,
+      support: u.notificationPrefs?.support !== false,
+    },
+  };
 }
 
 export async function updateProfile(userId: Types.ObjectId, input: { name?: string }) {

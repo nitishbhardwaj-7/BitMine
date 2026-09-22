@@ -17,7 +17,8 @@
     "test:watch": "vitest",
     "seed": "tsx src/scripts/seed.ts",
     "db:status": "tsx src/scripts/db-status.ts",
-    "admin:create": "tsx src/scripts/create-admin.ts"
+    "admin:create": "tsx src/scripts/create-admin.ts",
+    "news:refresh": "tsx src/scripts/refresh-news.ts"
   },
   "dependencies": {
     "cors": "^2.8.6",

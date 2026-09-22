@@ -1,5 +1,16 @@
 :root {
   /* ==========================================================================
+     SAFE AREA VIEW INSETS (NOTCH & DYNAMIC ISLAND PROTECTION)
+     ========================================================================== */
+  --safe-area-top: 48px;
+  --safe-area-bottom: 34px;
+  --safe-area-left: 0px;
+  --safe-area-right: 0px;
+  --status-bar-height: 44px;
+  --nav-bar-content-height: 50px;
+  --header-total-height: calc(var(--safe-area-top) + var(--nav-bar-content-height)); /* 98px */
+
+  /* ==========================================================================
      BITMINE REFINED DESIGN TOKENS (PREMIUM CRYPTO-FINTECH + LIQUID GLASS)
      ========================================================================== */
 
