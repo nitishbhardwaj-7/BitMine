@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite --port 3000 --host",
     "build": "vite build",
-    "preview": "vite preview --port 3000"
+    "preview": "vite preview --port 3000",
+    "android:dev": "node scripts/android-dev.mjs",
+    "android:apk": "node scripts/android-apk.mjs",
+    "android:release-sync": "vite build && cap sync android"
   },
   "devDependencies": {
     "@capacitor/android": "^8.5.2",

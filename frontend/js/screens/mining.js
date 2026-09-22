@@ -252,6 +252,9 @@ export const actions = {
       if (!adUnitId) throw new ApiError(0, 'ads_unavailable', 'Videos are unavailable right now. Please try again later.');
       const watched = await showRewardedAd({ adUnitId, userId: state.me.id, claimId: intent.claimId });
       if (!watched) return toast('Watch the whole video to claim.', 'error');
+      // Development phone builds: Google's callback can't reach a PC on the local
+      // network, so the dev shortcut confirms the watched ad instead.
+      if (config.devShortcuts) await post(`/v1/dev/claims/${intent.claimId}/complete`).catch(() => undefined);
     } else if (config.devShortcuts) {
       openSheet('Test video', `<div class="stack text-center"><div class="bm-spinner" style="margin: 10px auto; border-color: var(--color-lavender-border); border-top-color: var(--color-primary-purple); width: 28px; height: 28px;"></div><p class="bm-hint">Browser test mode: simulating a finished rewarded video.</p></div>`);
       await sleep(1200);

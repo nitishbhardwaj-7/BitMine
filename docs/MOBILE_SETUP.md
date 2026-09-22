@@ -21,13 +21,23 @@ The app is the web code in `frontend/` (your design, now wired to the backend), 
 
 Ad unit IDs come from the backend (admin → FAQs & app → App config), so they can change without an app update.
 
+## Test on your Android phone (development)
+The Android project is already generated (`frontend/android`, bundle ID `com.bitmine.app`).
+1. Start the API on this PC: `cd backend && npm run dev:api` (with `DEV_SHORTCUTS=true`).
+2. `cd frontend && npm run android:dev`. This builds the app pointing at this PC's Wi-Fi address and allows plain HTTP in that build only.
+3. `npm run android:apk`. This builds `android/app/build/outputs/apk/debug/app-debug.apk`, using Android Studio's bundled Java 21.
+4. Copy the APK to the phone and install it (allow "install unknown apps"), or plug the phone in with USB debugging on and run `adb install -r android/app/build/outputs/apk/debug/app-debug.apk`.
+5. The phone must be on the same Wi-Fi. If the app can't connect, allow Node.js through Windows Firewall for private networks.
+
+In this build, ads are Google's test ads, and claims are confirmed by the dev shortcut (Google's callback can't reach a PC on your home network). Google sign-in and push need Firebase set up first.
+
 ## Create the native projects (once)
 The bundle ID in `capacitor.config.json` is `com.bitmine.app`. **Confirm or change it before this step.** It must match App Store Connect, Play Console, Firebase, RevenueCat and the backend's `APPLE_BUNDLE_ID`.
 
 ```
 cd frontend
 npm run build
-npx cap add android
+npx cap add android    # done: frontend/android exists
 npx cap add ios        # on a Mac (needs Xcode + CocoaPods)
 npx cap sync
 ```
