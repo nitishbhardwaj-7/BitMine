@@ -102,49 +102,152 @@
 /* ==========================================================================
    1. HOMEPAGE HERO (VISUAL CENTERPIECE)
    ========================================================================== */
+/* ==========================================================================
+   1. HOMEPAGE HERO (PREMIUM LIQUID / 3D MOTION CENTERPIECE)
+   ========================================================================== */
 .home-hero {
-  background: var(--gradient-hero);
-  border-bottom-left-radius: 32px;
-  border-bottom-right-radius: 32px;
-  padding: 14px 16px 22px 16px;
+  background: #070611;
+  border-bottom-left-radius: 36px;
+  border-bottom-right-radius: 36px;
+  padding: 14px 16px 24px 16px;
   color: var(--text-light);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 14px 36px rgba(11, 10, 24, 0.28);
+  box-shadow: 0 16px 40px rgba(7, 6, 17, 0.45);
+  perspective: 800px;
 }
 
-/* Ambient Drifting Glowing Blobs */
-.hero-ambient-blob-1 {
+/* --- Hero Liquid Light Background Layers --- */
+.hero-liquid-lights-wrapper {
   position: absolute;
-  top: -20px;
-  right: -20px;
-  width: 240px;
-  height: 240px;
-  background: radial-gradient(circle, rgba(139, 77, 255, 0.45) 0%, transparent 68%);
-  border-radius: 50%;
+  inset: 0;
+  overflow: hidden;
   pointer-events: none;
-  animation: heroBlobDrift1 9s ease-in-out infinite;
+  z-index: 1;
 }
 
-.hero-ambient-blob-2 {
+/* Layer 1: Deep Violet Orb */
+.hero-liquid-orb-1 {
   position: absolute;
-  bottom: 20px;
-  left: -40px;
+  top: -40px;
+  right: -30px;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(109, 53, 245, 0.48) 0%, rgba(91, 43, 232, 0.28) 45%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(28px);
+  animation: liquidLight1 13s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+/* Layer 2: Electric Purple / Amethyst Orb */
+.hero-liquid-orb-2 {
+  position: absolute;
+  bottom: -20px;
+  left: -50px;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(139, 77, 255, 0.4) 0%, rgba(74, 22, 138, 0.25) 45%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(32px);
+  animation: liquidLight2 16s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+/* Layer 3: Subtle Indigo / Midnight Amethyst Orb */
+.hero-liquid-orb-3 {
+  position: absolute;
+  top: 40%;
+  left: 20%;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(30, 27, 75, 0.6) 0%, transparent 68%);
+  border-radius: 50%;
+  filter: blur(24px);
+  animation: liquidLight3 11s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+/* Layer 4: Soft Center Amethyst Breather */
+.hero-liquid-orb-4 {
+  position: absolute;
+  top: 10%;
+  right: 15%;
   width: 200px;
   height: 200px;
-  background: radial-gradient(circle, rgba(91, 43, 232, 0.35) 0%, transparent 68%);
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.22) 0%, transparent 60%);
   border-radius: 50%;
-  pointer-events: none;
-  animation: heroBlobDrift2 11s ease-in-out infinite;
+  filter: blur(20px);
+  animation: liquidLight4 14s ease-in-out infinite alternate;
+  will-change: transform, opacity;
 }
 
+/* Liquid Light Keyframe Trajectories (Non-repeating prime cycles) */
+@keyframes liquidLight1 {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate(-30px, 24px) scale(1.16);
+    opacity: 0.65;
+  }
+  100% {
+    transform: translate(20px, -18px) scale(0.94);
+    opacity: 0.95;
+  }
+}
+
+@keyframes liquidLight2 {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+    opacity: 0.75;
+  }
+  50% {
+    transform: translate(28px, -22px) scale(1.12);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(-18px, 14px) scale(0.96);
+    opacity: 0.7;
+  }
+}
+
+@keyframes liquidLight3 {
+  0% {
+    transform: translate(0px, 0px) scale(0.95);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(25px, 20px) scale(1.15);
+    opacity: 0.8;
+  }
+}
+
+@keyframes liquidLight4 {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate(-20px, -15px) scale(1.2);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(15px, 20px) scale(0.9);
+    opacity: 0.45;
+  }
+}
+
+/* --- Hero Top Bar --- */
 .hero-top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   position: relative;
-  z-index: 2;
+  z-index: 10;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .hero-brand {
@@ -181,7 +284,8 @@
   position: relative;
   cursor: pointer;
   transition: transform var(--spring-bounce), background var(--transition-fast);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 .hero-icon-btn:hover {
   background: rgba(255, 255, 255, 0.18);
@@ -206,20 +310,101 @@
   border: 1.5px solid #0B0A18;
 }
 
-/* Hero Balance Area */
+/* --- Hero Balance + Centerpiece Flex Section --- */
 .hero-balance-section {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 18px;
   position: relative;
-  z-index: 2;
+  z-index: 10;
+}
+
+.hero-balance-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-illustration-wrapper {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- Floating Liquid Glass Balance Card --- */
+.hero-balance-glass-card {
+  position: relative;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.065);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 24px;
+  padding: 14px 16px;
+  box-shadow: 
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.22),
+    0 12px 30px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  animation: glassCardFloat 5.4s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Subtle Floating Animation for Glass Card (Independent 5.4s period) */
+@keyframes glassCardFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Diagonal Light Sweep across Glass Card (Infrequent 11s period) */
+.glass-reflection-sweep {
+  position: absolute;
+  top: -50%;
+  left: -80%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 40%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.08) 60%,
+    transparent 100%
+  );
+  transform: skewX(-24deg);
+  pointer-events: none;
+  animation: glassLightSweep 11s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes glassLightSweep {
+  0%, 75% {
+    transform: translateX(-150%) skewX(-24deg);
+    opacity: 0;
+  }
+  80% {
+    opacity: 1;
+  }
+  92% {
+    transform: translateX(380%) skewX(-24deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(380%) skewX(-24deg);
+    opacity: 0;
+  }
 }
 
 .hero-balance-text {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  position: relative;
+  z-index: 2;
 }
 
 .hero-greeting {
@@ -241,10 +426,12 @@
 }
 
 .hero-balance-value {
-  font-size: 32px;
+  font-size: clamp(24px, 5.8vw, 30px);
   font-weight: var(--font-weight-extrabold);
   letter-spacing: -0.6px;
   color: #FFFFFF;
+  line-height: 1.15;
+  white-space: nowrap;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
@@ -255,7 +442,7 @@
 }
 .balance-eye-btn:hover {
   color: #FFFFFF;
-  transform: scale(1.1);
+  transform: scale(1.12);
 }
 .balance-eye-btn:active {
   transform: scale(0.92);
@@ -265,19 +452,276 @@
   height: 18px;
 }
 
-.hero-illustration {
+/* --- 3D BTC Visual Levitation Stage --- */
+.hero-illustration-stage {
+  width: 106px;
+  height: 106px;
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Atmospheric Glow Behind BTC Visual */
+.btc-ambient-aura {
+  position: absolute;
   width: 100px;
   height: 100px;
-  flex-shrink: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.7) 0%, rgba(109, 53, 245, 0.4) 45%, transparent 72%);
+  filter: blur(16px);
+  pointer-events: none;
+  animation: btcAuraBreathe 5.5s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes btcAuraBreathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.48;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.72;
+  }
+}
+
+/* Subtle Elliptical Contact Shadow */
+.btc-ambient-shadow {
+  position: absolute;
+  bottom: 2px;
+  width: 65px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.55) 0%, transparent 70%);
+  filter: blur(4px);
+  pointer-events: none;
+  animation: btcShadowSway 4.8s ease-in-out infinite;
+}
+
+@keyframes btcShadowSway {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(0.82);
+    opacity: 0.28;
+  }
+}
+
+/* Floating Stage with Levitation Physics (4.8s period) */
+.hero-floating-stage {
+  width: 96px;
+  height: 96px;
   position: relative;
+  z-index: 3;
+  animation: btcWeightlessFloat 4.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  will-change: transform;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes btcWeightlessFloat {
+  0%, 100% {
+    transform: translate3d(calc(-1.5px + var(--touch-shift-x, 0px)), calc(0px + var(--touch-shift-y, 0px)), 0) rotate(calc(-1.2deg + var(--touch-rot, 0deg))) scale(1);
+  }
+  50% {
+    transform: translate3d(calc(2px + var(--touch-shift-x, 0px)), calc(-8px + var(--touch-shift-y, 0px)), 0) rotate(calc(1.2deg + var(--touch-rot, 0deg))) scale(1.018);
+  }
 }
 
 .hero-cloud-img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 10px 22px rgba(109, 53, 245, 0.65));
-  animation: floatRigSmooth 4.5s ease-in-out infinite;
+  filter: drop-shadow(0 10px 24px rgba(109, 53, 245, 0.7));
+  user-select: none;
+}
+
+/* Curved Light Energy Streaks */
+.hero-energy-streaks {
+  position: absolute;
+  inset: -12px;
+  width: 130px;
+  height: 130px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.energy-streak-1 {
+  stroke-dasharray: 45 120;
+  stroke-dashoffset: 0;
+  animation: energyStreak1 7s linear infinite;
+  filter: drop-shadow(0 0 5px rgba(168, 85, 247, 0.75));
+}
+
+.energy-streak-2 {
+  stroke-dasharray: 35 110;
+  stroke-dashoffset: 60;
+  animation: energyStreak2 9s linear infinite reverse;
+  filter: drop-shadow(0 0 4px rgba(139, 77, 255, 0.65));
+}
+
+@keyframes energyStreak1 {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -165; }
+}
+
+@keyframes energyStreak2 {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 145; }
+}
+
+/* Floating Particles (Sparse & Subtle, max 6) */
+.hero-particles-container {
+  position: absolute;
+  inset: -20px;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.hero-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: #FFFFFF;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.hero-particle.p1 {
+  width: 3.5px;
+  height: 3.5px;
+  bottom: 10%;
+  left: 20%;
+  background: #C4B5FD;
+  box-shadow: 0 0 6px #A78BFA;
+  animation: particleDrift 6.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: 0s;
+}
+
+.hero-particle.p2 {
+  width: 5px;
+  height: 5px;
+  bottom: 25%;
+  right: 15%;
+  background: #DDD6FE;
+  filter: blur(1.5px);
+  animation: particleDrift 7.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: 1.5s;
+}
+
+.hero-particle.p3 {
+  width: 2.5px;
+  height: 2.5px;
+  bottom: 30%;
+  left: 45%;
+  background: #FFFFFF;
+  box-shadow: 0 0 4px #DDD6FE;
+  animation: particleDrift 5.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: 2.8s;
+}
+
+.hero-particle.p4 {
+  width: 6px;
+  height: 6px;
+  bottom: 5%;
+  left: 65%;
+  background: rgba(168, 85, 247, 0.8);
+  filter: blur(2px);
+  animation: particleDrift 8.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: 3.8s;
+}
+
+.hero-particle.p5 {
+  width: 3px;
+  height: 3px;
+  bottom: 15%;
+  left: 10%;
+  background: #E9D5FF;
+  box-shadow: 0 0 5px #C084FC;
+  animation: particleDrift 6.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: 4.6s;
+}
+
+@keyframes particleDrift {
+  0% {
+    transform: translateY(0px) translateX(0px) scale(0.6);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.85;
+  }
+  75% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-85px) translateX(12px) scale(1.1);
+    opacity: 0;
+  }
+}
+
+/* --- Hero Staggered Layer Entrance Transitions --- */
+.hero-stagger-0 { animation: heroStaggerIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0ms both; }
+.hero-stagger-1 { animation: heroGlowStaggerIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) 150ms both; }
+.hero-stagger-2 { animation: heroVisualStaggerIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 250ms both; }
+.hero-stagger-3 { animation: heroStaggerIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) 350ms both; }
+.hero-stagger-4 { animation: heroStaggerIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) 450ms both; }
+.hero-stagger-5 { animation: heroStaggerIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) 550ms both; }
+.hero-stagger-6 { animation: heroStaggerIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) 650ms both; }
+
+@keyframes heroStaggerIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes heroVisualStaggerIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes heroGlowStaggerIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  .hero-liquid-orb-1,
+  .hero-liquid-orb-2,
+  .hero-liquid-orb-3,
+  .hero-liquid-orb-4,
+  .btc-ambient-aura,
+  .btc-ambient-shadow,
+  .hero-floating-stage,
+  .energy-streak-1,
+  .energy-streak-2,
+  .hero-particle,
+  .hero-balance-glass-card,
+  .glass-reflection-sweep {
+    animation: none !important;
+  }
 }
 
 /* Security 2FA Card Inside Hero */

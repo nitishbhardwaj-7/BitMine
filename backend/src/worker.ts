@@ -1,7 +1,7 @@
 /**
  * Background worker: run as a single process, separate from the API
  * (docs/TECHNICAL_SPEC.md §3). Jobs still to add as their modules are built:
- * referrals (daily), notifications.
+ * none: all jobs are registered below.
  */
 import { env } from "./config/env.js";
 import { connectDb, disconnectDb } from "./db/connect.js";
@@ -12,6 +12,9 @@ import { runStoreFollowUps } from "./store/service.js";
 import { httpRevenueCatClient } from "./store/revenuecat.js";
 import { runPayouts } from "./wallet/payoutJob.js";
 import { httpSpeedClient } from "./wallet/speed.js";
+import { runReferralRewards } from "./referrals/referralJob.js";
+import { runOutbox, runReminders } from "./notifications/jobs.js";
+import { fcmSender } from "./notifications/push.js";
 
 const config = env();
 await connectDb(config.MONGODB_URI);
@@ -67,6 +70,17 @@ every("store-follow-ups", 60_000, () => runStoreFollowUps(store));
 
 const speed = config.SPEED_API_KEY ? httpSpeedClient(config.SPEED_API_KEY, config.SPEED_API_BASE) : undefined;
 if (!speed) logger.warn("SPEED_API_KEY not set: payouts are paused");
+// Referral rewards settle a UTC day once it's over (checked hourly, idempotent).
+hourly("referral-rewards", () => runReferralRewards(), 10 * 60_000);
+hourly("reminders", () => runReminders(), 5 * 60_000);
+
+const push =
+  config.FIREBASE_PROJECT_ID && config.FIREBASE_CLIENT_EMAIL && config.FIREBASE_PRIVATE_KEY
+    ? fcmSender(config.FIREBASE_PROJECT_ID, config.FIREBASE_CLIENT_EMAIL, config.FIREBASE_PRIVATE_KEY)
+    : undefined;
+if (!push) logger.warn("Firebase service account not set: push notifications are paused (in-app list still works)");
+every("push-outbox", 30_000, () => runOutbox(push));
+
 every("payouts", 60_000, async () => {
   const r = await runPayouts(speed);
   if (r.sent || r.paid || r.failed || r.reconcile || r.paused === "insufficient_funds") logger.info(r, "payout run");

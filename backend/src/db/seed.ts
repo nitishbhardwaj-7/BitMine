@@ -6,9 +6,15 @@
 import { Product } from "../models/index.js";
 import { PRODUCT_SEEDS, defaultStoreId } from "../config/economics.js";
 import { seedEconomics } from "../settings/economics.js";
+import { AppConfig, Faq } from "../models/index.js";
+import { APP_CONFIG_DEFAULTS, FAQ_SEEDS } from "../config/content.js";
 
 export async function seedAll(): Promise<void> {
   await seedEconomics();
+  await AppConfig.updateOne({ _id: "app" }, { $setOnInsert: APP_CONFIG_DEFAULTS }, { upsert: true });
+  for (const [i, f] of FAQ_SEEDS.entries()) {
+    await Faq.updateOne({ seedKey: f.seedKey }, { $setOnInsert: { ...f, order: (i + 1) * 10 } }, { upsert: true });
+  }
   for (const p of PRODUCT_SEEDS) {
     await Product.updateOne({ sku: p.sku }, { $setOnInsert: p }, { upsert: true });
     // Store IDs are filled in only where missing, so admin edits survive re-seeding.

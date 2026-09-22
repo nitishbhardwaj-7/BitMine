@@ -38,7 +38,7 @@ The tests start their own throwaway MongoDB replica set. The first run downloads
 | Path | What |
 |---|---|
 | `src/server.ts` | API entry |
-| `src/worker.ts` | Worker entry (hourly accrual; more jobs to come) |
+| `src/worker.ts` | Worker: accrual, referrals, reminders, push, store follow-ups, payouts |
 | `src/mining/accrual.ts` | Pure earnings maths |
 | `src/mining/accrualJob.ts` | Hourly job that credits earnings to the ledger |
 | `src/settings/economics.ts` | Versioned economics settings |
@@ -55,6 +55,11 @@ The tests start their own throwaway MongoDB replica set. The first run downloads
 | `src/wallet/payoutJob.ts` | Sends approved withdrawals via Speed and tracks them to paid/failed |
 | `src/wallet/speed.ts` | Speed instant-send client |
 | `src/wallet/bolt11.ts` | Lightning invoice reader (amount, network, expiry) |
+| `src/referrals/referralJob.ts` | Daily referral rewards (5%, capped 5 sats/day) and referral summary |
+| `src/notifications/` | Outbox + in-app list, FCM push sender, reminders |
+| `src/support/service.ts` | Support tickets |
+| `src/routes/public.ts` | FAQs and app config (no sign-in) |
+| `src/config/content.ts` | FAQ and app config seed content |
 | `src/config/economics.ts` | Launch numbers and product seeds |
 | `src/models/` | MongoDB models |
 | `src/lib/time.ts` | Timezone and local-midnight helpers |

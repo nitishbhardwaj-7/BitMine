@@ -8,6 +8,9 @@ import { listProducts, listPurchases, syncFromApp, type StoreDeps } from "../sto
 import { getWallet, listLedger } from "../wallet/wallet.js";
 import { listWithdrawals, requestWithdrawal, sendWithdrawalCode } from "../wallet/withdrawals.js";
 import type { Mailer } from "../auth/mailer.js";
+import { getReferralSummary } from "../referrals/referralJob.js";
+import { listNotifications, markRead, registerPushToken, removePushToken, updateNotificationPrefs } from "../notifications/service.js";
+import { addUserMessage, createTicket, getTicket, listTickets } from "../support/service.js";
 import {
   addReferral,
   changePassword,
@@ -77,6 +80,13 @@ export function v1Router(opts: { jwtAccessSecret: string; store: StoreDeps; mail
     const { code } = z.object({ code: z.string().trim().min(4).max(16) }).parse(req.body);
     res.json(await addReferral(uid(req), code));
   });
+  r.patch("/me/notifications", async (req, res) => {
+    const prefs = z
+      .object({ miningReminder: z.boolean(), minerExpiry: z.boolean(), withdrawals: z.boolean(), support: z.boolean() })
+      .partial()
+      .parse(req.body);
+    res.json(await updateNotificationPrefs(uid(req), prefs));
+  });
   r.post("/me/delete", async (req, res) => {
     z.object({ confirm: z.literal("DELETE") }).parse(req.body);
     res.json(await deleteAccount(uid(req)));
@@ -138,6 +148,51 @@ export function v1Router(opts: { jwtAccessSecret: string; store: StoreDeps; mail
 
   r.get("/withdrawals", async (req, res) => {
     res.json({ withdrawals: await listWithdrawals(uid(req)) });
+  });
+
+  // referrals
+  r.get("/referrals", async (req, res) => {
+    res.json(await getReferralSummary(uid(req)));
+  });
+
+  // notifications
+  r.get("/notifications", async (req, res) => {
+    res.json(await listNotifications(uid(req), typeof req.query.before === "string" ? req.query.before : undefined));
+  });
+  r.post("/notifications/read", async (req, res) => {
+    const body = z.union([z.object({ all: z.literal(true) }), z.object({ ids: z.array(z.string()).max(100) })]).parse(req.body);
+    res.json(await markRead(uid(req), "all" in body ? "all" : body.ids));
+  });
+  const pushToken = z.object({ token: z.string().min(20).max(4096), platform: z.enum(["android", "ios"]) });
+  r.post("/push-tokens", async (req, res) => {
+    const { token, platform } = pushToken.parse(req.body);
+    res.json(await registerPushToken(uid(req), token, platform));
+  });
+  r.delete("/push-tokens", async (req, res) => {
+    const { token } = z.object({ token: z.string().min(20).max(4096) }).parse(req.body);
+    res.json(await removePushToken(uid(req), token));
+  });
+
+  // support
+  r.get("/support/tickets", async (req, res) => {
+    res.json({ tickets: await listTickets(uid(req)) });
+  });
+  r.post("/support/tickets", async (req, res) => {
+    const body = z
+      .object({
+        category: z.enum(["withdrawal", "purchase", "mining", "account", "other"]).default("other"),
+        subject: z.string().trim().min(3).max(120),
+        message: z.string().trim().min(5).max(4000),
+      })
+      .parse(req.body);
+    res.status(201).json(await createTicket(uid(req), body));
+  });
+  r.get("/support/tickets/:id", async (req, res) => {
+    res.json(await getTicket(uid(req), req.params.id!));
+  });
+  r.post("/support/tickets/:id/messages", async (req, res) => {
+    const { text } = z.object({ text: z.string().trim().min(1).max(4000) }).parse(req.body);
+    res.json(await addUserMessage(uid(req), req.params.id!, text));
   });
 
   return r;

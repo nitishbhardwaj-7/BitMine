@@ -31,6 +31,10 @@ const schema = z.object({
   // Email (Brevo). Without a key, codes are logged in development and email fails in production.
   BREVO_API_KEY: z.string().optional().transform((v) => v || undefined),
   MAIL_FROM: z.string().optional().transform((v) => v || undefined),
+  // Push notifications (FCM HTTP v1) via a Firebase service account.
+  FIREBASE_PROJECT_ID: z.string().optional().transform((v) => v || undefined),
+  FIREBASE_CLIENT_EMAIL: z.string().optional().transform((v) => v || undefined),
+  FIREBASE_PRIVATE_KEY: z.string().optional().transform((v) => (v ? v.replace(/\\n/g, "\n") : undefined)),
   ADMOB_SSV_KEYS_URL: z.string().url().default("https://www.gstatic.com/admob/reward/verifier-keys.json"),
 });
 

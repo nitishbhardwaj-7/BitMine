@@ -18,6 +18,9 @@ import { getEconomics } from "../settings/economics.js";
 import { parseDestination } from "./destination.js";
 import { consumeOtp, sendOtp } from "../auth/otp.js";
 import type { Mailer } from "../auth/mailer.js";
+import { notify } from "../notifications/service.js";
+
+const sats = (n: number) => `${n.toLocaleString("en-US")} sats`;
 
 export const OPEN_STATUSES = ["pending_review", "approved", "sending", "needs_reconcile"] as const;
 type WithdrawalStatus = "pending_review" | "approved" | "sending" | "paid" | "failed" | "rejected" | "needs_reconcile";
@@ -189,6 +192,17 @@ export async function rejectWithdrawal(id: string, adminId: Types.ObjectId, reas
     );
     if (!w) throw new AppError(409, "not_rejectable", "Only withdrawals that haven't been sent can be rejected.");
     await move("unlock", w, tx);
+    await notify(
+      w.userId,
+      {
+        kind: "withdrawal_rejected",
+        title: "Withdrawal not approved",
+        body: `Your withdrawal of ${sats(w.amountSats)} wasn't approved: ${reason}. The sats are back in your balance.`,
+        dedupeKey: `withdrawal:${w._id}:rejected`,
+        data: { withdrawalId: String(w._id) },
+      },
+      tx,
+    );
     return w;
   });
 }
@@ -228,6 +242,17 @@ export async function markPaid(
     );
     if (!w) return null;
     await move("paid", w, tx);
+    await notify(
+      w.userId,
+      {
+        kind: "withdrawal_paid",
+        title: "Withdrawal sent",
+        body: `${sats(w.amountSats)} are on their way to your wallet.`,
+        dedupeKey: `withdrawal:${w._id}:paid`,
+        data: { withdrawalId: String(w._id) },
+      },
+      tx,
+    );
     logger.info({ withdrawalId: String(id), amountSats: w.amountSats }, "withdrawal paid");
     return w;
   });
@@ -248,6 +273,17 @@ export async function markFailed(
     );
     if (!w) return null;
     await move("unlock", w, tx);
+    await notify(
+      w.userId,
+      {
+        kind: "withdrawal_failed",
+        title: "Withdrawal didn't go through",
+        body: `We couldn't send your ${sats(w.amountSats)}. They're back in your balance, so you can try again.`,
+        dedupeKey: `withdrawal:${w._id}:failed`,
+        data: { withdrawalId: String(w._id) },
+      },
+      tx,
+    );
     logger.warn({ withdrawalId: String(id), reason }, "withdrawal failed, funds unlocked");
     return w;
   });

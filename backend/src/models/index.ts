@@ -37,6 +37,12 @@ const userSchema = new Schema(
     failedLogins: { count: { type: Number, default: 0 }, windowStart: Date },
     lockUntil: Date,
     deletedAt: Date,
+    notificationPrefs: {
+      miningReminder: { type: Boolean, default: true },
+      minerExpiry: { type: Boolean, default: true },
+      withdrawals: { type: Boolean, default: true },
+      support: { type: Boolean, default: true },
+    },
     /** Reasons an admin should look before paying this user (e.g. a refunded purchase). */
     reviewFlags: {
       type: [{ reason: String, refType: String, refId: ObjectId, createdAt: Date, _id: false }],
@@ -229,6 +235,95 @@ const rateLimitSchema = new Schema({
 });
 rateLimitSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
 
+// ── jobState: progress markers for daily jobs ───────────────────────────
+const jobStateSchema = new Schema(
+  { _id: { type: String }, lastDay: String },
+  { timestamps: true },
+);
+
+// ── pushTokens: FCM device tokens ────────────────────────────────────────
+const pushTokenSchema = new Schema(
+  {
+    userId: { type: ObjectId, ref: "User", required: true },
+    token: { type: String, required: true, unique: true },
+    platform: { type: String, enum: ["android", "ios"], required: true },
+  },
+  { timestamps: true },
+);
+pushTokenSchema.index({ userId: 1 });
+
+// ── notifications: outbox + in-app history ───────────────────────────────
+const notificationSchema = new Schema(
+  {
+    userId: { type: ObjectId, ref: "User", required: true },
+    kind: {
+      type: String,
+      enum: ["mining_reminder", "miner_expiry", "withdrawal_paid", "withdrawal_failed", "withdrawal_rejected", "support_reply", "announcement"],
+      required: true,
+    },
+    title: { type: String, required: true },
+    body: { type: String, required: true },
+    data: { type: Schema.Types.Mixed },
+    /** Makes a notification happen at most once (e.g. "mining_reminder:2026-10-01"). */
+    dedupeKey: { type: String, required: true },
+    push: { type: String, enum: ["pending", "sent", "skipped", "failed"], default: "pending" },
+    attempts: { type: Number, default: 0 },
+    readAt: Date,
+  },
+  { timestamps: true },
+);
+notificationSchema.index({ userId: 1, dedupeKey: 1 }, { unique: true });
+notificationSchema.index({ userId: 1, createdAt: -1 });
+notificationSchema.index({ push: 1, createdAt: 1 });
+
+// ── supportTickets ───────────────────────────────────────────────────────
+const supportTicketSchema = new Schema(
+  {
+    userId: { type: ObjectId, ref: "User", required: true },
+    category: { type: String, enum: ["withdrawal", "purchase", "mining", "account", "other"], default: "other" },
+    subject: { type: String, required: true, maxlength: 120 },
+    status: { type: String, enum: ["open", "answered", "closed"], default: "open" },
+    messages: {
+      type: [{ from: { type: String, enum: ["user", "admin"], required: true }, text: { type: String, required: true, maxlength: 4000 }, at: { type: Date, required: true }, _id: false }],
+      default: [],
+    },
+  },
+  { timestamps: true },
+);
+supportTicketSchema.index({ userId: 1, updatedAt: -1 });
+supportTicketSchema.index({ status: 1, updatedAt: 1 });
+
+// ── faqs ─────────────────────────────────────────────────────────────────
+const faqSchema = new Schema(
+  {
+    question: { type: String, required: true },
+    answer: { type: String, required: true },
+    order: { type: Number, default: 0 },
+    active: { type: Boolean, default: true },
+    seedKey: { type: String, unique: true, sparse: true },
+  },
+  { timestamps: true },
+);
+
+// ── appConfig: app-wide settings the app reads at start ─────────────────
+const appConfigSchema = new Schema(
+  {
+    _id: { type: String },
+    minVersion: { android: String, ios: String },
+    latestVersion: { android: String, ios: String },
+    updateMessage: String,
+    storeUrls: { android: String, ios: String },
+    adUnits: {
+      android: { rewarded: String, banner: String },
+      ios: { rewarded: String, banner: String },
+    },
+    supportEmail: String,
+    termsUrl: String,
+    privacyUrl: String,
+  },
+  { timestamps: true },
+);
+
 // ── storeSyncs: follow-up RevenueCat checks after a purchase ────────────
 const storeSyncSchema = new Schema(
   {
@@ -259,6 +354,8 @@ const ledgerSchema = new Schema(
   { timestamps: { createdAt: true, updatedAt: false } },
 );
 ledgerSchema.index({ userId: 1, createdAt: -1 });
+// Referral job: a day's mining credits.
+ledgerSchema.index({ type: 1, createdAt: 1 });
 
 // ── balances: cache of ledger sums, updated in the same transaction ─────
 const balanceSchema = new Schema(
@@ -335,6 +432,12 @@ export const StoreSync = mongoose.model("StoreSync", storeSyncSchema);
 export const Otp = mongoose.model("Otp", otpSchema);
 export const RefreshToken = mongoose.model("RefreshToken", refreshTokenSchema);
 export const RateLimit = mongoose.model("RateLimit", rateLimitSchema);
+export const JobState = mongoose.model("JobState", jobStateSchema);
+export const PushToken = mongoose.model("PushToken", pushTokenSchema);
+export const Notification = mongoose.model("Notification", notificationSchema);
+export const SupportTicket = mongoose.model("SupportTicket", supportTicketSchema);
+export const Faq = mongoose.model("Faq", faqSchema);
+export const AppConfig = mongoose.model("AppConfig", appConfigSchema);
 export const Ledger = mongoose.model("Ledger", ledgerSchema);
 export const Balance = mongoose.model("Balance", balanceSchema);
 export const Withdrawal = mongoose.model("Withdrawal", withdrawalSchema);

@@ -452,6 +452,107 @@ class BitMineApp {
 
     // Generate HTML for the active screen
     container.innerHTML = this.getScreenHTML(screenId);
+
+    if (screenId === 'home') {
+      this.initHeroMotion();
+    }
+  }
+
+  /* Hero Section: Scroll Parallax & Micro-Interactive Motion Handling */
+  initHeroMotion() {
+    const container = document.getElementById('activeScreenContainer');
+    if (!container) return;
+    const scrollView = container.querySelector('.screen-scroll-view');
+    const hero = container.querySelector('.home-hero');
+    if (!scrollView || !hero) return;
+
+    const bgLights = hero.querySelector('#heroLiquidLights');
+    const balanceWrapper = hero.querySelector('#heroBalanceWrapper');
+    const balanceText = hero.querySelector('#heroBalanceText');
+    const illustrationWrapper = hero.querySelector('#heroIllustrationWrapper');
+    const auraGlow = hero.querySelector('#btcAuraGlow');
+    const floatingStage = hero.querySelector('#heroFloatingStage');
+
+    const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // 1. Scroll Parallax (Requirement 8)
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        const y = scrollView.scrollTop;
+        if (y < 0) return; // Guard for iOS bounce
+
+        if (!isReducedMotion) {
+          // Hero Background: slowly moves upward (-0.12x)
+          if (bgLights) {
+            bgLights.style.transform = `translate3d(0, ${-y * 0.12}px, 0)`;
+          }
+          // Balance Card: moves upward at a different speed (-0.06x)
+          if (balanceWrapper) {
+            balanceWrapper.style.transform = `translate3d(0, ${-y * 0.06}px, 0)`;
+          }
+          // Hero text: gradually fades and moves upward
+          if (balanceText) {
+            const fadeProgress = Math.min(y / 140, 1);
+            balanceText.style.opacity = `${Math.max(0.05, 1 - fadeProgress * 0.95)}`;
+            balanceText.style.transform = `translate3d(0, ${-y * 0.14}px, 0)`;
+          }
+          // BTC Visual: moves slightly slower than foreground (+0.24x relative parallax)
+          if (illustrationWrapper) {
+            illustrationWrapper.style.transform = `translate3d(0, ${y * 0.24}px, 0)`;
+          }
+          // Glow: expands slightly and fades
+          if (auraGlow) {
+            const scale = 1 + Math.min(y * 0.0016, 0.3);
+            const opacity = Math.max(0.1, 0.65 - (y / 160) * 0.5);
+            auraGlow.style.transform = `scale(${scale})`;
+            auraGlow.style.opacity = `${opacity}`;
+          }
+        }
+      });
+    };
+
+    scrollView.addEventListener('scroll', onScroll, { passive: true });
+
+    // 2. Interactive Touch / Pointer Micro-Tilt Response (Requirement 10)
+    if (!isReducedMotion && floatingStage) {
+      let activePointer = false;
+
+      const handlePointerMove = (e) => {
+        activePointer = true;
+        const rect = hero.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        const dx = Math.max(-1, Math.min(1, (e.clientX - centerX) / (rect.width / 2)));
+        const dy = Math.max(-1, Math.min(1, (e.clientY - centerY) / (rect.height / 2)));
+
+        // Micro-movement: touch left -> -2.2px, touch right -> +2.2px, touch up -> -2.2px
+        const shiftX = dx * 2.2;
+        const shiftY = dy * 2.2;
+        const rot = dx * 1.0;
+
+        floatingStage.style.setProperty('--touch-shift-x', `${shiftX.toFixed(2)}px`);
+        floatingStage.style.setProperty('--touch-shift-y', `${shiftY.toFixed(2)}px`);
+        floatingStage.style.setProperty('--touch-rot', `${rot.toFixed(2)}deg`);
+      };
+
+      const handlePointerLeave = () => {
+        if (!activePointer) return;
+        activePointer = false;
+        floatingStage.style.setProperty('--touch-shift-x', '0px');
+        floatingStage.style.setProperty('--touch-shift-y', '0px');
+        floatingStage.style.setProperty('--touch-rot', '0deg');
+      };
+
+      hero.addEventListener('pointermove', handlePointerMove, { passive: true });
+      hero.addEventListener('pointerleave', handlePointerLeave, { passive: true });
+      hero.addEventListener('pointerup', handlePointerLeave, { passive: true });
+      hero.addEventListener('pointercancel', handlePointerLeave, { passive: true });
+    }
   }
 
   toggleBalanceVisibility() {
@@ -568,13 +669,18 @@ class BitMineApp {
     const u = mockData.user;
     return `
       <div class="screen-scroll-view animate-fade-up">
-        <!-- Hero Dark Gradient Area -->
-        <div class="home-hero">
-          <!-- Ambient Drifting Glow Blobs -->
-          <div class="hero-ambient-blob-1"></div>
-          <div class="hero-ambient-blob-2"></div>
+        <!-- Hero Dark Gradient Area with Premium Liquid / 3D Motion -->
+        <div class="home-hero" id="homeHero">
+          <!-- 1. Liquid Light Atmospheric Background (8-16s morphing layers) -->
+          <div class="hero-liquid-lights-wrapper" id="heroLiquidLights">
+            <div class="hero-liquid-orb-1"></div>
+            <div class="hero-liquid-orb-2"></div>
+            <div class="hero-liquid-orb-3"></div>
+            <div class="hero-liquid-orb-4"></div>
+          </div>
 
-          <div class="hero-top-bar" style="margin-top: 32px;">
+          <!-- Hero Top Bar (0ms entry stagger) -->
+          <div class="hero-top-bar hero-stagger-0" style="margin-top: 32px;">
             <div class="hero-brand">
               <button class="hero-icon-btn" aria-label="Menu" data-open-settings>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -596,32 +702,78 @@ class BitMineApp {
             </div>
           </div>
 
+          <!-- Hero Balance + BTC Visual Centerpiece -->
           <div class="hero-balance-section">
-            <div class="hero-balance-text">
-              <span class="hero-greeting">Good morning,</span>
-              <span class="hero-subtitle">Keep mining a brighter tomorrow</span>
-              <div class="hero-balance-row">
-                <span class="hero-balance-value">$${u.balanceUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                <button class="balance-eye-btn" id="balanceEyeToggle" aria-label="Toggle Balance">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                </button>
-              </div>
-              <div style="margin-top: 6px;">
-                <span class="pct-pill glass-light">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m18 15-6-6-6 6"/></svg>
-                  ${u.todayChangePct} today
-                </span>
+            <!-- 6. Floating Liquid Glass Balance Card (350ms entry stagger, 5.4s float) -->
+            <div class="hero-balance-wrapper hero-stagger-3" id="heroBalanceWrapper">
+              <div class="hero-balance-glass-card" id="heroBalanceCard">
+                <!-- 9. Moving Light Reflection Across Glass -->
+                <div class="glass-reflection-sweep"></div>
+                <div class="hero-balance-text" id="heroBalanceText">
+                  <span class="hero-greeting hero-stagger-4">Good morning,</span>
+                  <span class="hero-subtitle hero-stagger-5">Keep mining a brighter tomorrow</span>
+                  <div class="hero-balance-row">
+                    <span class="hero-balance-value">$${u.balanceUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    <button class="balance-eye-btn" id="balanceEyeToggle" aria-label="Toggle Balance">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                  </div>
+                  <div style="margin-top: 6px;">
+                    <span class="pct-pill glass-light">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m18 15-6-6-6 6"/></svg>
+                      ${u.todayChangePct} today
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- Floating 3D Bitcoin Cloud Illustration -->
-            <div class="hero-illustration">
-              <img src="./assets/images/btc_cloud_hero.jpg" alt="Bitcoin Cloud" class="hero-cloud-img"/>
+            <!-- 3. Floating 3D BTC Mining Visual Stage (250ms entry stagger, 4.8s weightless levitation) -->
+            <div class="hero-illustration-wrapper hero-stagger-2" id="heroIllustrationWrapper">
+              <div class="hero-illustration-stage" id="heroIllustrationStage">
+                <!-- 2. Atmospheric Breathing Glow Aura (150ms entry, 5.5s cycle) -->
+                <div class="btc-ambient-aura hero-stagger-1" id="btcAuraGlow"></div>
+                <!-- Dynamic Elliptical Contact Shadow -->
+                <div class="btc-ambient-shadow"></div>
+
+                <!-- 4. Floating Particles (Sparse, subtle drift upward) -->
+                <div class="hero-particles-container">
+                  <div class="hero-particle p1"></div>
+                  <div class="hero-particle p2"></div>
+                  <div class="hero-particle p3"></div>
+                  <div class="hero-particle p4"></div>
+                  <div class="hero-particle p5"></div>
+                </div>
+
+                <!-- 5. Curved Energy Light Streaks -->
+                <svg class="hero-energy-streaks" viewBox="0 0 130 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="streakGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#C084FC" stop-opacity="0"/>
+                      <stop offset="40%" stop-color="#E879F9" stop-opacity="0.9"/>
+                      <stop offset="80%" stop-color="#A855F7" stop-opacity="0.95"/>
+                      <stop offset="100%" stop-color="#7E22CE" stop-opacity="0"/>
+                    </linearGradient>
+                    <linearGradient id="streakGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="#9333EA" stop-opacity="0"/>
+                      <stop offset="50%" stop-color="#C4B5FD" stop-opacity="0.85"/>
+                      <stop offset="100%" stop-color="#818CF8" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <path class="energy-streak-1" d="M 22,65 C 22,36 44,18 70,18 C 100,18 114,42 110,72 C 106,98 84,114 58,110 C 34,106 20,86 24,62" stroke="url(#streakGrad1)" stroke-width="2.2" stroke-linecap="round"/>
+                  <path class="energy-streak-2" d="M 108,60 C 110,88 88,112 62,112 C 32,112 18,88 22,58 C 26,30 48,16 76,20 C 100,24 112,44 108,68" stroke="url(#streakGrad2)" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+
+                <!-- Levitation Visual with Interactive Touch Shift -->
+                <div class="hero-floating-stage" id="heroFloatingStage">
+                  <img src="./assets/images/btc_cloud_hero.jpg" alt="Bitcoin Cloud" class="hero-cloud-img"/>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- 4 Circular Action Shortcuts -->
-          <div class="action-shortcut-group">
+          <!-- 4 Circular Action Shortcuts (650ms CTA stagger) -->
+          <div class="action-shortcut-group hero-stagger-6" id="heroActionGroup">
             <div class="action-shortcut-item" data-action="deposit">
               <div class="action-circle-btn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
@@ -648,8 +800,8 @@ class BitMineApp {
             </div>
           </div>
 
-          <!-- Security 2FA Card -->
-          <div class="security-alert-card">
+          <!-- Security 2FA Card (650ms CTA stagger) -->
+          <div class="security-alert-card hero-stagger-6">
             <div class="security-alert-left">
               <div class="shield-icon-glow">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
