@@ -240,12 +240,15 @@ const withdrawalSchema = new Schema(
     amountSats: { type: Number, required: true, validate: { validator: Number.isSafeInteger, message: "whole sats only" } },
     destinationType: { type: String, enum: ["speed_address", "bolt11"], required: true },
     destination: { type: String, required: true },
+    /** BOLT11 only: the invoice can't be paid after this. */
+    destinationExpiresAt: Date,
     status: {
       type: String,
       enum: ["pending_review", "approved", "sending", "paid", "failed", "rejected", "needs_reconcile"],
       default: "pending_review",
     },
-    speed: { paymentId: String, requestRef: String, feeSats: Number, rawStatus: String },
+    speed: { paymentId: String, note: String, feeSats: Number, rawStatus: String, failureReason: String },
+    sendingAt: Date,
     reviewedBy: { type: ObjectId },
     reviewedAt: Date,
     rejectReason: String,
@@ -288,4 +291,5 @@ export type UserDoc = InferSchemaType<typeof userSchema> & { _id: Types.ObjectId
 export type MinerDoc = InferSchemaType<typeof minerSchema> & { _id: Types.ObjectId };
 export type SessionDoc = InferSchemaType<typeof sessionSchema> & { _id: Types.ObjectId };
 export type ClaimDoc = InferSchemaType<typeof claimSchema> & { _id: Types.ObjectId };
+export type WithdrawalDoc = InferSchemaType<typeof withdrawalSchema> & { _id: Types.ObjectId };
 export type BalanceDoc = InferSchemaType<typeof balanceSchema> & { _id: Types.ObjectId };

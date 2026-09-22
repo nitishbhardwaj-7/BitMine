@@ -50,6 +50,10 @@ The tests start their own throwaway MongoDB replica set. The first run downloads
 | `src/auth/` | Access-token check (login flows come with the auth module) |
 | `src/store/service.ts` | Purchases: grants, stacking, Super Miner extensions, backfill, refunds |
 | `src/store/revenuecat.ts` | RevenueCat REST client |
+| `src/wallet/withdrawals.ts` | Withdrawal requests, locking, admin approve/reject/reconcile |
+| `src/wallet/payoutJob.ts` | Sends approved withdrawals via Speed and tracks them to paid/failed |
+| `src/wallet/speed.ts` | Speed instant-send client |
+| `src/wallet/bolt11.ts` | Lightning invoice reader (amount, network, expiry) |
 | `src/config/economics.ts` | Launch numbers and product seeds |
 | `src/models/` | MongoDB models |
 | `src/lib/time.ts` | Timezone and local-midnight helpers |

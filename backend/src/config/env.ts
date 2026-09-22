@@ -19,6 +19,9 @@ const schema = z.object({
   REVENUECAT_SECRET_KEY: z.string().optional().transform((v) => v || undefined),
   REVENUECAT_WEBHOOK_AUTH: z.string().optional().transform((v) => v || undefined),
   ALLOW_SANDBOX: z.enum(["true", "false"]).default("false").transform((v) => v === "true"),
+  // Payouts: optional so the API runs before Speed is set up; payouts pause until set.
+  SPEED_API_KEY: z.string().optional().transform((v) => v || undefined),
+  SPEED_API_BASE: z.string().url().default("https://api.tryspeed.com"),
   ADMOB_SSV_KEYS_URL: z.string().url().default("https://www.gstatic.com/admob/reward/verifier-keys.json"),
 });
 

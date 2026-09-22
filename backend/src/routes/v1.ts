@@ -5,11 +5,18 @@ import { startSession } from "../mining/sessions.js";
 import { getMiningStatus, listMiners } from "../mining/status.js";
 import { createClaimIntent, getClaim } from "../claims/service.js";
 import { listProducts, listPurchases, syncFromApp, type StoreDeps } from "../store/service.js";
+import { getWallet, listLedger } from "../wallet/wallet.js";
+import { listWithdrawals, requestWithdrawal } from "../wallet/withdrawals.js";
 
 const claimBody = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("regular") }),
   z.object({ kind: z.literal("super"), tier: z.string().min(1).max(40) }),
 ]);
+
+const withdrawalBody = z.object({
+  amountSats: z.number().int().positive(),
+  destination: z.string().trim().min(3).max(2000),
+});
 
 // requireUser guarantees userId; this narrows the type for handlers.
 const uid = (req: Request) => req.userId!;
@@ -51,6 +58,24 @@ export function v1Router(opts: { jwtAccessSecret: string; store: StoreDeps }) {
 
   r.get("/store/purchases", async (req, res) => {
     res.json({ purchases: await listPurchases(uid(req)) });
+  });
+
+  r.get("/wallet", async (req, res) => {
+    res.json(await getWallet(uid(req)));
+  });
+
+  r.get("/wallet/ledger", async (req, res) => {
+    const before = typeof req.query.before === "string" ? req.query.before : undefined;
+    res.json(await listLedger(uid(req), before));
+  });
+
+  r.post("/withdrawals", async (req, res) => {
+    const body = withdrawalBody.parse(req.body);
+    res.status(201).json(await requestWithdrawal(uid(req), body));
+  });
+
+  r.get("/withdrawals", async (req, res) => {
+    res.json({ withdrawals: await listWithdrawals(uid(req)) });
   });
 
   return r;

@@ -401,8 +401,8 @@ SENTRY_DSN
 
 | Item | Why |
 |---|---|
-| Speed `send` API: paying a Speed Lightning address and an external BOLT11 invoice in **SATS** (BitPlay only sent USDT), fees, and looking up a payment by our reference | §6.5 depends on it |
-| Speed: whether an idempotency key or reference field exists on send | Prevents double payouts |
+| ~~Speed `send` API in SATS~~ **Confirmed** (2026-09-22): `POST /send` with `currency`/`target_currency` `SATS`, `withdraw_method: lightning`, `withdraw_request` = LN address or invoice; status `unpaid → paid/failed`; `GET /send/{id}`. **Still to test with a small real payment:** whether Speed's fee is deducted from `amount` or charged on top | §6.5 |
+| ~~Speed idempotency key~~ **None exists.** Handled by claiming each withdrawal before sending, putting `bitmine:{withdrawalId}` in `note`, and on an unknown outcome searching recent sends by note instead of retrying; if not found, an admin decides | Prevents double payouts |
 | RevenueCat: non-renewing subscription (iOS) and consumable (Android) transaction fields in the REST API, and refund event shape | §6.4 |
 | AdMob SSV: `customData` delivery and callback latency in production | §6.3 |
 | Apple review: rewarded ads granting hashpower plus BTC withdrawal (guideline 3.1.5 and the crypto rules), and whether an organization account is required | Launch risk |

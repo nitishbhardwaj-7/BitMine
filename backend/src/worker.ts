@@ -1,7 +1,7 @@
 /**
  * Background worker: run as a single process, separate from the API
  * (docs/TECHNICAL_SPEC.md §3). Jobs still to add as their modules are built:
- * referrals (daily), payouts (every minute), notifications.
+ * referrals (daily), notifications.
  */
 import { env } from "./config/env.js";
 import { connectDb, disconnectDb } from "./db/connect.js";
@@ -10,6 +10,8 @@ import { MS_PER_HOUR } from "./lib/time.js";
 import { runAccrual } from "./mining/accrualJob.js";
 import { runStoreFollowUps } from "./store/service.js";
 import { httpRevenueCatClient } from "./store/revenuecat.js";
+import { runPayouts } from "./wallet/payoutJob.js";
+import { httpSpeedClient } from "./wallet/speed.js";
 
 const config = env();
 await connectDb(config.MONGODB_URI);
@@ -62,6 +64,13 @@ const store = {
   allowSandbox: config.ALLOW_SANDBOX,
 };
 every("store-follow-ups", 60_000, () => runStoreFollowUps(store));
+
+const speed = config.SPEED_API_KEY ? httpSpeedClient(config.SPEED_API_KEY, config.SPEED_API_BASE) : undefined;
+if (!speed) logger.warn("SPEED_API_KEY not set: payouts are paused");
+every("payouts", 60_000, async () => {
+  const r = await runPayouts(speed);
+  if (r.sent || r.paid || r.failed || r.reconcile || r.paused === "insufficient_funds") logger.info(r, "payout run");
+});
 logger.info("BitMine worker started");
 
 async function shutdown(signal: string) {
