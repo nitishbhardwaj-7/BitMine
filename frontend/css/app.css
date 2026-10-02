@@ -311,4 +311,15 @@ html.device .bubble, html.device .faq-item p, html.device .referral-code-text { 
   pointer-events: auto !important; contain: paint;
 }
 .home-hero.collapsing-hero .hero-collapsing-content { transform: none !important; }
-.home-sheet { position: relative; z-index: 1; background: var(--bg-page); border-radius: 26px 26px 0 0; min-height: 100%; margin-top: -18px; padding-top: 4px; box-shadow: 0 -10px 30px rgba(7, 6, 17, 0.3); }
+/* The sheet body is a plain opaque layer (no radius, no shadow) so the compositor can skip the
+   covered part of the hero; the rounded cap and its shadow live on a tiny separate layer above it. */
+.home-sheet { position: relative; z-index: 1; background: var(--bg-page); border-radius: 0; min-height: 100%; margin-top: 8px; padding-top: 4px; }
+.home-sheet::before { content: ''; position: absolute; left: 0; right: 0; top: -26px; height: 27px; background: var(--bg-page); border-radius: 26px 26px 0 0; box-shadow: 0 -10px 30px rgba(7, 6, 17, 0.3); will-change: transform; pointer-events: none; }
+/* Nothing in the pinned hero moves per frame any more: drop the layer promotions the old
+   per-frame transforms needed, so the compositor has fewer layers to blend while scrolling. */
+.home-hero.collapsing-hero .hero-collapsing-content,
+.home-hero.collapsing-hero .hero-balance-section,
+.home-hero.collapsing-hero .hero-balance-wrapper,
+.home-hero.collapsing-hero .action-shortcut-group,
+.home-hero.collapsing-hero .security-alert-card,
+.home-topbar .hero-top-bar { will-change: auto !important; }

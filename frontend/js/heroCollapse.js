@@ -25,10 +25,14 @@ export function initHeroScrollCollapse(container) {
   let docked = false;
   let ticking = false;
   let idle;
+  // Read the hero height once (and on resize), never on a scroll frame.
+  let threshold = hero.offsetHeight - 8;
+  const onResize = () => { threshold = hero.offsetHeight - 8; };
+  window.addEventListener('resize', onResize);
 
   const update = () => {
     ticking = false;
-    const covered = scrollView.scrollTop >= hero.offsetHeight - 8;
+    const covered = scrollView.scrollTop >= threshold;
     if (covered !== docked) {
       docked = covered;
       topBar?.classList.toggle('docked', docked);
@@ -53,6 +57,7 @@ export function initHeroScrollCollapse(container) {
   cleanup = () => {
     clearTimeout(enteredTimer);
     clearTimeout(idle);
+    window.removeEventListener('resize', onResize);
     cleanup = null;
   };
 }
