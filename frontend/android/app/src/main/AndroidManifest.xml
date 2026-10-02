@@ -36,12 +36,11 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
-        <!-- AdMob App ID. This is Google's public TEST app ID: replace it with the
-             BitMine Android app ID from AdMob (ca-app-pub-XXXX~YYYY) before release.
-             The ads SDK crashes on launch if this entry is missing. -->
+        <!-- BitMine's AdMob Android app ID (AdMob → Apps → BitMine). The ads SDK
+             crashes on launch if this entry is missing. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+            android:value="ca-app-pub-9814114017899418~6431928355"/>
     </application>
 
     <!-- Permissions -->
