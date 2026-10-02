@@ -1,7 +1,8 @@
 /**
  * Development build for a real Android phone on the same Wi-Fi as this PC.
  *
- *   npm run android:dev     → builds the web app pointing at http://<this PC's LAN IP>:4000,
+ *   npm run android:dev     → builds the web app pointing at http://<this PC's LAN IP>:4000
+ *                             (DEV_API_HOST=192.168.x.x or DEV_API_URL=http://... to override),
  *                             syncs it into android/ with plain HTTP allowed, then restores
  *                             capacitor.config.json
  *   npm run android:apk     → builds android/app/build/outputs/apk/debug/app-debug.apk
@@ -27,7 +28,8 @@ if (!ip) {
   process.exit(1);
 }
 
-const apiUrl = `http://${ip}:4000`;
+// DEV_API_URL overrides everything (e.g. http://localhost:4010 with `adb reverse tcp:4010 tcp:4010` for an emulator).
+const apiUrl = process.env.DEV_API_URL || `http://${ip}:4000`;
 console.log(`\nDevelopment Android build → API ${apiUrl}\n`);
 
 const run = (cmd, env = {}) => execSync(cmd, { stdio: 'inherit', env: { ...process.env, ...env } });

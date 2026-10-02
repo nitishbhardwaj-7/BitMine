@@ -20,6 +20,7 @@ export function initHeroScrollCollapse(container) {
   spacer.style.height = `${expandedH}px`;
   hero.style.height = `${expandedH}px`;
 
+  const content = hero.querySelector('#heroCollapsingContent');
   const topBar = hero.querySelector('#heroTopBar');
   const balanceWrapper = hero.querySelector('#heroBalanceWrapper');
   const actionGroup = hero.querySelector('#heroActionGroup');
@@ -28,17 +29,22 @@ export function initHeroScrollCollapse(container) {
   let isDocked = false;
   let ticking = false;
 
+  // Compositor-only collapse. The prototype shrank the hero's height and
+  // border-radius every frame, which re-laid-out and repainted the whole hero
+  // (gradient, shadow, blurred orbs) on each scroll step: 80–100 ms frames on
+  // Android. Now the hero keeps its size and slides up by the scroll distance
+  // while its content slides down by the same amount, so the content stays
+  // put and the hero's bottom edge rises exactly as before, using transforms
+  // the GPU can move without repainting.
   const applyCollapse = (yScroll) => {
-    const y = Math.max(0, yScroll);
-    const progress = Math.min(1, Math.max(0, y / scrollDistance));
-    hero.style.height = `${Math.max(collapsedH, expandedH - y).toFixed(1)}px`;
-    const radius = Math.max(0, 26 - progress * 26);
-    hero.style.borderRadius = `0 0 ${radius.toFixed(1)}px ${radius.toFixed(1)}px`;
+    const y = Math.min(scrollDistance, Math.max(0, yScroll));
+    const progress = y / scrollDistance;
+    hero.style.transform = `translate3d(0, ${(-y).toFixed(1)}px, 0)`;
+    if (content) content.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`;
     if (progress > 0.85 !== isDocked) {
       isDocked = progress > 0.85;
       hero.classList.toggle('navbar-docked', isDocked);
     }
-    if (topBar) topBar.style.transform = 'translate3d(0, 0, 0)';
 
     if (balanceWrapper) {
       let t = 'translate3d(0, 0, 0) scale(1)';

@@ -175,6 +175,8 @@ setInterval(() => {
   if (!state.status) return;
   const c = container();
   if (!c) return;
+  // Not while the Home list is scrolling: those frames belong to the scroll.
+  if (c.querySelector('.home-hero.is-scrolling')) return;
   c.querySelectorAll('[data-live="balance"]').forEach((e) => (e.innerHTML = liveBalanceHtml()));
   c.querySelectorAll('[data-live="balance-sub"]').forEach((e) => (e.textContent = moneySub(liveBalanceMsat())));
   c.querySelectorAll('[data-live="today"]').forEach((e) => (e.textContent = liveSmallText(liveTodayMsat())));

@@ -277,3 +277,30 @@ html.device .hero-liquid-orb-3, html.device .hero-liquid-orb-4 { filter: blur(18
 .hero-balance-value, .wallet-main-amount { font-variant-numeric: tabular-nums; }
 .bal-micro { font-size: 0.55em; font-weight: 700; opacity: 0.55; letter-spacing: 0; }
 .bal-unit { font-size: 0.48em; font-weight: 700; opacity: 0.8; margin-left: 6px; letter-spacing: 0; }
+
+/* Transform-based collapse (js/heroCollapse.js): the hero keeps its 430px height and moves as
+   a GPU layer; the bottom corners square off once docked instead of changing every frame. */
+.home-hero.collapsing-hero { will-change: transform !important; contain: layout paint style; }
+.home-hero.collapsing-hero .hero-collapsing-content { will-change: transform; }
+.home-hero.collapsing-hero.navbar-docked { border-bottom-left-radius: 0 !important; border-bottom-right-radius: 0 !important; }
+/* Blurred orbs are pre-rastered layers; keep them from re-rastering under the moving hero. */
+.home-hero .hero-liquid-orb-1, .home-hero .hero-liquid-orb-2,
+.home-hero .hero-liquid-orb-3, .home-hero .hero-liquid-orb-4 { will-change: transform, opacity; }
+
+/* Phones: every backdrop blur that sits over moving content is re-blurred on each scroll frame.
+   The bottom nav floats over the list, and the hero's buttons/pills sit on the sliding hero.
+   Translucent tints keep the look at a fraction of the cost. Desktop keeps the real blur. */
+html.device .bm-bottom-nav { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: rgba(255, 255, 255, 0.97) !important; }
+html.device .action-circle-btn,
+html.device .hero-icon-btn,
+html.device .network-pill,
+html.device .pct-pill.glass-light,
+html.device .bm-card-glass { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+html.device .action-circle-btn, html.device .hero-icon-btn { background-color: rgba(255, 255, 255, 0.12) !important; }
+html.device .network-pill, html.device .pct-pill.glass-light { background-color: rgba(255, 255, 255, 0.14) !important; }
+
+/* App chrome isn't text: no selection handles or copy menus on long-press (lesson text,
+   support messages and inputs stay selectable). */
+html.device, html.device * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+html.device input, html.device textarea, html.device .lesson-body, html.device .lesson-body *,
+html.device .bubble, html.device .faq-item p, html.device .referral-code-text { -webkit-user-select: text; user-select: text; }
