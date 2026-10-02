@@ -259,7 +259,7 @@ export const actions = {
       }
       let watched = false;
       try {
-        watched = await showRewardedAd({ adUnitId, userId: state.me.id, claimId: intent.claimId });
+        watched = await showRewardedAd({ adUnitId, userId: state.me.id, claimId: intent.claimId, testDevices: state.config?.admobTestDevices ?? [] });
       } catch (err) {
         await giveBack();
         throw new ApiError(0, 'ad_failed', 'No video is available right now. Please try again in a moment.');

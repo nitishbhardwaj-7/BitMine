@@ -47,6 +47,7 @@ export function publicRouter(opts: { market?: MarketCache } = {}) {
       updateMessage: cfg?.updateMessage,
       storeUrls: cfg?.storeUrls,
       adUnits: cfg?.adUnits,
+      admobTestDevices: cfg?.admobTestDevices ?? [],
       supportEmail: cfg?.supportEmail,
       termsUrl: cfg?.termsUrl,
       privacyUrl: cfg?.privacyUrl,

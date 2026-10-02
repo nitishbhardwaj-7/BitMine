@@ -327,6 +327,12 @@ const appConfigSchema = new Schema(
       android: { rewarded: String, banner: String },
       ios: { rewarded: String, banner: String },
     },
+    /**
+     * AdMob test device IDs (from the AdMob SDK's logcat line). These phones get
+     * test videos even while the app is new / unapproved, and the callbacks still
+     * reach the server, so claims can be tested end to end on them.
+     */
+    admobTestDevices: { type: [String], default: [] },
     supportEmail: String,
     termsUrl: String,
     privacyUrl: String,

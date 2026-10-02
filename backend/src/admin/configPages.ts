@@ -131,6 +131,7 @@ export function configPages() {
         <div class="row"><label>Play Store URL<input name="storeAndroid" value="${cfg?.storeUrls?.android ?? ""}"></label><label>App Store URL<input name="storeIos" value="${cfg?.storeUrls?.ios ?? ""}"></label></div>
         <div class="row"><label>Android rewarded ad unit<input name="adAndroidRewarded" value="${cfg?.adUnits?.android?.rewarded ?? ""}"></label><label>Android banner ad unit<input name="adAndroidBanner" value="${cfg?.adUnits?.android?.banner ?? ""}"></label></div>
         <div class="row"><label>iOS rewarded ad unit<input name="adIosRewarded" value="${cfg?.adUnits?.ios?.rewarded ?? ""}"></label><label>iOS banner ad unit<input name="adIosBanner" value="${cfg?.adUnits?.ios?.banner ?? ""}"></label></div>
+        <label>AdMob test devices (comma-separated device IDs; these phones get test videos and can test claims end to end)<input name="admobTestDevices" value="${(cfg?.admobTestDevices ?? []).join(", ")}"></label>
         <div class="row"><label>Support email<input name="supportEmail" value="${cfg?.supportEmail ?? ""}"></label><label>Terms URL<input name="termsUrl" value="${cfg?.termsUrl ?? ""}"></label><label>Privacy URL<input name="privacyUrl" value="${cfg?.privacyUrl ?? ""}"></label></div>
         <div><button class="btn">Save app config</button></div></form></div>
       <div class="card"><h2>FAQs</h2>
@@ -152,6 +153,7 @@ export function configPages() {
       "adUnits.android.rewarded": f(req, "adAndroidRewarded"), "adUnits.android.banner": f(req, "adAndroidBanner"),
       "adUnits.ios.rewarded": f(req, "adIosRewarded"), "adUnits.ios.banner": f(req, "adIosBanner"),
       supportEmail: f(req, "supportEmail"), termsUrl: f(req, "termsUrl"), privacyUrl: f(req, "privacyUrl"),
+      admobTestDevices: f(req, "admobTestDevices").split(",").map((s) => s.trim()).filter(Boolean),
     };
     for (const v of [set["minVersion.android"], set["minVersion.ios"], set["latestVersion.android"], set["latestVersion.ios"]]) {
       if (v && !/^\d+\.\d+\.\d+$/.test(v)) throw new AppError(400, "invalid_version", `Versions look like 1.2.3 (got "${v}").`);

@@ -19,10 +19,16 @@ export const platform = window.Capacitor?.getPlatform?.() ?? 'web';
 // ── rewarded ads ──────────────────────────────────────────────────────────
 let admobReady = false;
 
-async function admob() {
+/**
+ * `testDevices` comes from the backend's app config (admin → FAQs & app). Phones
+ * listed there receive Google test videos even before AdMob approves the app,
+ * and their callbacks still verify claims on the server.
+ */
+async function admob(testDevices = []) {
   const { AdMob } = await import('@capacitor-community/admob');
   if (!admobReady) {
-    await AdMob.initialize({ initializeForTesting: import.meta.env?.DEV === true });
+    const testing = import.meta.env?.DEV === true || testDevices.length > 0;
+    await AdMob.initialize({ initializeForTesting: testing, testingDevices: testDevices });
     admobReady = true;
   }
   return AdMob;
@@ -33,9 +39,9 @@ async function admob() {
  * with userId + customData, which is what actually grants the hashpower.
  * Resolves true when the ad was watched to the end.
  */
-export async function showRewardedAd({ adUnitId, userId, claimId }) {
+export async function showRewardedAd({ adUnitId, userId, claimId, testDevices = [] }) {
   if (!isNative) return false; // browser: the caller uses the dev shortcut instead
-  const AdMob = await admob();
+  const AdMob = await admob(testDevices);
   await AdMob.prepareRewardVideoAd({ adId: adUnitId, ssv: { userId, customData: claimId } });
   const reward = await AdMob.showRewardVideoAd();
   return Boolean(reward);
