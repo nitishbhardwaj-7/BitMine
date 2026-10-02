@@ -121,6 +121,11 @@ export async function requestWithdrawal(userId: Types.ObjectId, input: { amountS
 
   const user = await User.findById(userId).select({ status: 1, reviewFlags: 1, email: 1, twoFactor: 1 }).lean();
   if (!user || user.status !== "active") throw new AppError(403, "account_inactive", "This account can't make withdrawals.");
+  // Checked again by the unique index inside the transaction; this early check keeps a
+  // valid 2FA code from being consumed by a request that is going to be refused.
+  if (await Withdrawal.exists({ userId, status: { $in: OPEN_STATUSES } })) {
+    throw new AppError(409, "withdrawal_open", "You already have a withdrawal in progress. You can request another once it's done.");
+  }
   if (user.twoFactor?.enabled) {
     if (!input.code) throw new AppError(403, "code_required", "Enter the code we emailed you to confirm this withdrawal.");
     await consumeOtp({ email: user.email, purpose: "withdrawal", code: input.code }, now);

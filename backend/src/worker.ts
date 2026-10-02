@@ -60,8 +60,14 @@ function every(name: string, ms: number, job: () => Promise<unknown>) {
   void loop();
 }
 
-// Catches up any missed hours on start, then keeps pace.
-hourly("accrual", () => runAccrual());
+// Catches up any missed hours on start, then keeps pace. A run credits at most
+// 14 days per user; after longer downtime it loops until everyone is current.
+hourly("accrual", async () => {
+  for (let i = 0; i < 50; i++) {
+    const r = await runAccrual();
+    if (r.remaining === 0 || stopping) return;
+  }
+});
 
 const store = {
   revenueCat: config.REVENUECAT_SECRET_KEY ? httpRevenueCatClient(config.REVENUECAT_SECRET_KEY) : undefined,
@@ -99,3 +105,11 @@ async function shutdown(signal: string) {
 }
 process.on("SIGINT", () => void shutdown("SIGINT"));
 process.on("SIGTERM", () => void shutdown("SIGTERM"));
+process.on("unhandledRejection", (err) => {
+  logger.fatal({ err }, "unhandled promise rejection");
+  process.exit(1);
+});
+process.on("uncaughtException", (err) => {
+  logger.fatal({ err }, "uncaught exception");
+  process.exit(1);
+});

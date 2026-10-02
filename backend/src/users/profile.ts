@@ -3,7 +3,9 @@
  * referral code, account deletion.
  */
 import type { Types } from "mongoose";
-import { User } from "../models/index.js";
+import { User, Withdrawal } from "../models/index.js";
+import { enforce } from "../lib/rateLimit.js";
+import { OPEN_STATUSES } from "../wallet/withdrawals.js";
 import { AppError, notFound } from "../lib/errors.js";
 import { MS_PER_DAY, isValidTimeZone, nextLocalMidnight } from "../lib/time.js";
 import { hashPassword, verifyPassword, PASSWORD_MIN, PASSWORD_MAX } from "../auth/password.js";
@@ -63,6 +65,8 @@ export async function requestEmailChange(mailer: Mailer, userId: Types.ObjectId,
   const newEmail = newEmailIn.trim().toLowerCase();
   if (isDisposableEmail(newEmail)) throw new AppError(400, "disposable_email", "Please use a permanent email address.");
   if (await User.exists({ email: newEmail })) throw new AppError(409, "email_taken", "That email is already used by another account.");
+  // Codes go to an address the user doesn't own yet: cap how many one account can trigger.
+  await enforce(`email-change:${userId}`, 5, 60 * 60 * 1000);
   await sendOtp(mailer, { email: newEmail, purpose: "change_email", userId });
   return { ok: true };
 }
@@ -145,6 +149,10 @@ export async function addReferral(userId: Types.ObjectId, code: string, now = Da
  */
 export async function deleteAccount(userId: Types.ObjectId, now = Date.now()) {
   const u = await load(userId);
+  // Sats that are being paid out must land (or return) before the account goes.
+  if (await Withdrawal.exists({ userId, status: { $in: OPEN_STATUSES } })) {
+    throw new AppError(409, "withdrawal_open", "You have a withdrawal in progress. Wait until it's sent or returned, then delete your account.");
+  }
   await User.updateOne(
     { _id: userId },
     { $set: { status: "deleted", deletedAt: new Date(now), email: `deleted+${userId}@deleted.bitmine.invalid` }, $unset: { providers: 1 } },

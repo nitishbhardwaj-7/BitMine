@@ -97,6 +97,19 @@ export async function getClaim(userId: Types.ObjectId, claimId: string) {
   return { claimId: String(c._id), kind: c.kind, gh: c.gh, status: c.status, expiresAt: c.expiresAt.toISOString() };
 }
 
+/**
+ * The app gives up a pending claim (the ad didn't load or was closed early).
+ * Only pending claims change; a callback that arrives later finds the claim
+ * cancelled and grants nothing. Idempotent.
+ */
+export async function cancelClaim(userId: Types.ObjectId, claimId: string) {
+  if (!Types.ObjectId.isValid(claimId)) throw notFound("Claim");
+  const r = await Claim.updateOne({ _id: claimId, userId, status: "pending" }, { $set: { status: "expired" } });
+  const c = await Claim.findOne({ _id: claimId, userId }).lean();
+  if (!c) throw notFound("Claim");
+  return { claimId: String(c._id), status: c.status, cancelled: r.modifiedCount === 1 };
+}
+
 export type SsvOutcome =
   | { result: "granted"; minerId: string }
   | { result: "duplicate" }

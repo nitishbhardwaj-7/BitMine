@@ -4,7 +4,7 @@ import { createApp } from "./app.js";
 import { logger } from "./lib/logger.js";
 import { SsvVerifier, httpKeyFetcher } from "./claims/admobSsv.js";
 import { httpRevenueCatClient } from "./store/revenuecat.js";
-import { brevoMailer, devLogMailer, disabledMailer } from "./auth/mailer.js";
+import { createMailer } from "./auth/mailer.js";
 import { socialVerifier } from "./auth/social.js";
 import { httpSpeedClient } from "./wallet/speed.js";
 import { MarketCache, coinGeckoFetcher } from "./content/market.js";
@@ -12,14 +12,13 @@ import { MarketCache, coinGeckoFetcher } from "./content/market.js";
 const config = env();
 await connectDb(config.MONGODB_URI);
 
-const mailer =
-  config.BREVO_API_KEY && config.MAIL_FROM
-    ? brevoMailer(config.BREVO_API_KEY, config.MAIL_FROM)
-    : config.NODE_ENV === "production"
-      ? disabledMailer()
-      : devLogMailer();
-if (!config.BREVO_API_KEY) {
-  logger.warn(`BREVO_API_KEY not set: emails are ${config.NODE_ENV === "production" ? "disabled" : "logged to the console"}`);
+const { mailer, mode: mailMode } = createMailer(config);
+if (mailMode === "brevo" || mailMode === "smtp") {
+  logger.info({ mailMode, from: config.MAIL_FROM }, "email delivery configured");
+} else if (config.NODE_ENV === "production" && mailMode === "log") {
+  logger.warn("MAIL_LOG_ONLY=true: email codes are written to this log, not sent. Configure SMTP before real users sign up.");
+} else {
+  logger.warn(`No email provider: emails are ${mailMode === "disabled" ? "disabled" : "logged to the console"}`);
 }
 
 const app = createApp({
@@ -38,6 +37,7 @@ const app = createApp({
   revenueCatWebhookAuth: config.REVENUECAT_WEBHOOK_AUTH,
   market: new MarketCache(coinGeckoFetcher()),
   devShortcuts: config.DEV_SHORTCUTS && config.NODE_ENV !== "production",
+  trustProxy: config.TRUST_PROXY,
   admin: {
     speed: config.SPEED_API_KEY ? httpSpeedClient(config.SPEED_API_KEY, config.SPEED_API_BASE) : undefined,
     secureCookies: config.NODE_ENV === "production",
@@ -48,11 +48,26 @@ const server = app.listen(config.PORT, () => {
   logger.info({ port: config.PORT }, "BitMine API listening");
 });
 
-async function shutdown(signal: string) {
+let stopping = false;
+async function shutdown(signal: string, code = 0) {
+  if (stopping) return;
+  stopping = true;
   logger.info({ signal }, "shutting down API");
-  server.close();
-  await disconnectDb();
-  process.exit(0);
+  // Stop accepting connections, let in-flight requests finish (10 s at most), then exit.
+  const closed = new Promise<void>((resolve) => server.close(() => resolve()));
+  server.closeIdleConnections();
+  await Promise.race([closed, new Promise((r) => setTimeout(r, 10_000))]);
+  await disconnectDb().catch(() => undefined);
+  process.exit(code);
 }
 process.on("SIGINT", () => void shutdown("SIGINT"));
 process.on("SIGTERM", () => void shutdown("SIGTERM"));
+// A bug that escapes the request handlers must not leave a half-working process: log and restart.
+process.on("unhandledRejection", (err) => {
+  logger.fatal({ err }, "unhandled promise rejection");
+  void shutdown("unhandledRejection", 1);
+});
+process.on("uncaughtException", (err) => {
+  logger.fatal({ err }, "uncaught exception");
+  void shutdown("uncaughtException", 1);
+});

@@ -30,6 +30,9 @@ npm run admin:create -- you@example.com
 ```
 Add the printed setup key to an authenticator app, then sign in at `http://localhost:4000/admin/login`.
 
+## Production
+`npm run build` compiles to `dist/`; `npm run start:api` and `npm run start:worker` run it. The step-by-step server setup (Docker Compose + Caddy for HTTPS) is in [../docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md). With `NODE_ENV=production` the API refuses to start without the email provider configured, because sign-up depends on it.
+
 ## Tests
 ```
 npm test

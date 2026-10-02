@@ -12,6 +12,13 @@ const schema = z.object({
     .string()
     .default("")
     .transform((s) => s.split(",").map((o) => o.trim()).filter(Boolean)),
+  /**
+   * Which proxy hops to trust for the client IP (Express "trust proxy").
+   * "loopback" = nginx/Caddy on the same host; "uniquelocal" = a reverse proxy
+   * on a private/Docker network. Rate limits are keyed by client IP, so a wrong
+   * value here would make every user share one limit.
+   */
+  TRUST_PROXY: z.string().default("loopback"),
   MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
   JWT_ACCESS_SECRET: z.string().min(32, "JWT_ACCESS_SECRET must be at least 32 characters"),
   // Store: optional so the API can run before RevenueCat is set up; the store
@@ -31,6 +38,21 @@ const schema = z.object({
   // Email (Brevo). Without a key, codes are logged in development and email fails in production.
   BREVO_API_KEY: z.string().optional().transform((v) => v || undefined),
   MAIL_FROM: z.string().optional().transform((v) => v || undefined),
+  // Email over SMTP (any provider: Hostinger, Zoho, Gmail app password, SES...).
+  // Used when BREVO_API_KEY isn't set. Port 465 = implicit TLS; 587 = STARTTLS.
+  SMTP_HOST: z.string().optional().transform((v) => v || undefined),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_SECURE: z.enum(["true", "false", ""]).optional().transform((v) => (v ? v === "true" : undefined)),
+  SMTP_USER: z.string().optional().transform((v) => v || undefined),
+  SMTP_PASS: z.string().optional().transform((v) => v || undefined),
+  /** Display name on outgoing email. */
+  MAIL_FROM_NAME: z.string().default("BitMine"),
+  /**
+   * TEMPORARY, for a private test phase before Brevo is set up: email codes are
+   * written to the server log instead of being sent. Only whoever can read the
+   * logs can complete sign-up. Remove once BREVO_API_KEY / MAIL_FROM are set.
+   */
+  MAIL_LOG_ONLY: z.enum(["true", "false"]).default("false").transform((v) => v === "true"),
   // Push notifications (FCM HTTP v1) via a Firebase service account.
   FIREBASE_PROJECT_ID: z.string().optional().transform((v) => v || undefined),
   FIREBASE_CLIENT_EMAIL: z.string().optional().transform((v) => v || undefined),
@@ -53,6 +75,17 @@ export function env(): Env {
       throw new Error(`Invalid environment:\n${problems}`);
     }
     cached = parsed.data;
+    checkProduction(cached);
   }
   return cached;
+}
+
+/** Things that would silently break the app for users if missing in production. */
+function checkProduction(e: Env) {
+  if (e.NODE_ENV !== "production") return;
+  const problems: string[] = [];
+  const emailConfigured = Boolean(e.MAIL_FROM && (e.BREVO_API_KEY || e.SMTP_HOST));
+  if (!emailConfigured && !e.MAIL_LOG_ONLY) problems.push("Email is required (SMTP_HOST or BREVO_API_KEY, plus MAIL_FROM): sign-up, 2FA and password reset send email codes");
+  if (e.MONGODB_URI.includes("localhost") || e.MONGODB_URI.includes("127.0.0.1")) problems.push("MONGODB_URI points at localhost");
+  if (problems.length) throw new Error(`Not safe to run in production:\n${problems.map((p) => "  " + p).join("\n")}`);
 }

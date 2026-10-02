@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireUser } from "../auth/requireUser.js";
 import { startSession } from "../mining/sessions.js";
 import { getMiningStatus, listMiners, minerDetail } from "../mining/status.js";
-import { createClaimIntent, getClaim } from "../claims/service.js";
+import { cancelClaim, createClaimIntent, getClaim } from "../claims/service.js";
 import { listProducts, listPurchases, syncFromApp, type StoreDeps } from "../store/service.js";
 import { dailyEarnings, getWallet, listLedger } from "../wallet/wallet.js";
 import { listWithdrawals, requestWithdrawal, sendWithdrawalCode } from "../wallet/withdrawals.js";
@@ -117,6 +117,10 @@ export function v1Router(opts: { jwtAccessSecret: string; store: StoreDeps; mail
 
   r.get("/claims/:id", async (req, res) => {
     res.json(await getClaim(uid(req), req.params.id!));
+  });
+
+  r.post("/claims/:id/cancel", async (req, res) => {
+    res.json(await cancelClaim(uid(req), req.params.id!));
   });
 
   r.get("/store/products", async (_req, res) => {

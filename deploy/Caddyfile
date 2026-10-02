@@ -1,0 +1,19 @@
+# Caddy gets and renews the TLS certificate for API_DOMAIN by itself.
+{$API_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# Only the admin panel is meant for browsers; it carries its own cookies/CSRF.
+	reverse_proxy api:4000 {
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

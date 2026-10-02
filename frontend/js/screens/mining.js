@@ -247,11 +247,27 @@ export const actions = {
     const tier = el.dataset.tier;
     const intent = await post('/v1/claims', kind === 'super' ? { kind, tier } : { kind });
 
+    // A claim that doesn't end in a watched ad is handed back, so it doesn't
+    // block the user's next attempt (the server allows 3 open claims).
+    const giveBack = () => post(`/v1/claims/${intent.claimId}/cancel`).catch(() => undefined);
+
     if (isNative) {
       const adUnitId = state.config?.adUnits?.[platform]?.rewarded;
-      if (!adUnitId) throw new ApiError(0, 'ads_unavailable', 'Videos are unavailable right now. Please try again later.');
-      const watched = await showRewardedAd({ adUnitId, userId: state.me.id, claimId: intent.claimId });
-      if (!watched) return toast('Watch the whole video to claim.', 'error');
+      if (!adUnitId) {
+        await giveBack();
+        throw new ApiError(0, 'ads_unavailable', 'Videos are unavailable right now. Please try again later.');
+      }
+      let watched = false;
+      try {
+        watched = await showRewardedAd({ adUnitId, userId: state.me.id, claimId: intent.claimId });
+      } catch (err) {
+        await giveBack();
+        throw new ApiError(0, 'ad_failed', 'No video is available right now. Please try again in a moment.');
+      }
+      if (!watched) {
+        await giveBack();
+        return toast('Watch the whole video to claim.', 'error');
+      }
       // Development phone builds: Google's callback can't reach a PC on the local
       // network, so the dev shortcut confirms the watched ad instead.
       if (config.devShortcuts) await post(`/v1/dev/claims/${intent.claimId}/complete`).catch(() => undefined);

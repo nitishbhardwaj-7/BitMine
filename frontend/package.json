@@ -9,7 +9,8 @@
     "preview": "vite preview --port 3000",
     "android:dev": "node scripts/android-dev.mjs",
     "android:apk": "node scripts/android-apk.mjs",
-    "android:release-sync": "vite build && cap sync android"
+    "release:check": "node scripts/release-check.mjs",
+    "android:release": "node scripts/release-check.mjs && vite build && cap sync android"
   },
   "devDependencies": {
     "@capacitor/android": "^8.5.2",

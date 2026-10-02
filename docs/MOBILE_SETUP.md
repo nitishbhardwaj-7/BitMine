@@ -31,6 +31,8 @@ The Android project is already generated (`frontend/android`, bundle ID `com.bit
 
 In this build, ads are Google's test ads, and claims are confirmed by the dev shortcut (Google's callback can't reach a PC on your home network). Google sign-in and push need Firebase set up first.
 
+Plain HTTP is allowed only by the **debug** manifest (`android/app/src/debug/AndroidManifest.xml`); release builds are HTTPS-only.
+
 ## Create the native projects (once)
 The bundle ID in `capacitor.config.json` is `com.bitmine.app`. **Confirm or change it before this step.** It must match App Store Connect, Play Console, Firebase, RevenueCat and the backend's `APPLE_BUNDLE_ID`.
 
@@ -64,6 +66,23 @@ npm run build && npx cap sync
 npx cap open android   # Android Studio → Run
 npx cap open ios       # Xcode → Run (Mac only)
 ```
+
+## Release build (Android)
+1. Backend live first (docs/DEPLOYMENT.md); set `VITE_API_URL=https://api.yourdomain`, `VITE_DEV_SHORTCUTS=false`, the RevenueCat keys and the Google web client ID in `frontend/.env`.
+2. Real AdMob **app ID** in `android/app/src/main/AndroidManifest.xml` (replaces Google's test ID) and `google-services.json` in `android/app/`.
+3. Signing key, once (keep the file and passwords safe; losing them means you can never update the app):
+   ```
+   keytool -genkeypair -v -keystore frontend/android/bitmine-release.jks -alias bitmine -keyalg RSA -keysize 2048 -validity 10000
+   ```
+   Then create `frontend/android/keystore.properties` (git-ignored):
+   ```
+   storeFile=../bitmine-release.jks
+   storePassword=…
+   keyAlias=bitmine
+   keyPassword=…
+   ```
+4. Bump `versionCode` and `versionName` in `android/app/build.gradle` (versionName = `VITE_APP_VERSION`).
+5. `npm run android:release`: this refuses to continue if a development setting is still in place, then builds and syncs. Open Android Studio (`npx cap open android`) → Build → Generate Signed Bundle (AAB) for Play, or run `gradlew bundleRelease` in `android/`.
 
 ## How the native parts work
 | Feature | Plugin | What the server does |

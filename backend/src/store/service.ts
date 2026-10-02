@@ -13,6 +13,7 @@
 import mongoose, { Types, type ClientSession } from "mongoose";
 import { Balance, Ledger, Miner, Product, Purchase, StoreSync, SuperEntitlement, User } from "../models/index.js";
 import { AppError } from "../lib/errors.js";
+import { enforce } from "../lib/rateLimit.js";
 import { logger } from "../lib/logger.js";
 import { MS_PER_DAY } from "../lib/time.js";
 import { ensureBalance } from "../wallet/balances.js";
@@ -205,8 +206,12 @@ export async function syncUser(userId: Types.ObjectId, deps: StoreDeps, now = Da
 
 /** App entry point: sync now, and schedule follow-up checks in case RevenueCat lags. */
 export async function syncFromApp(userId: Types.ObjectId, deps: StoreDeps, now = Date.now()) {
+  // Each call hits RevenueCat's API: a purchase plus a few "Restore" taps is plenty.
+  await enforce(`store-sync:${userId}`, 12, 10 * 60_000, "Please wait a few minutes before syncing purchases again.");
   const result = await syncUser(userId, deps, now);
   if (result.granted.length === 0) {
+    // Replace, don't add: repeated taps must not queue repeated checks.
+    await StoreSync.deleteMany({ userId });
     await StoreSync.insertMany(FOLLOW_UPS_MS.map((ms, i) => ({ userId, dueAt: new Date(now + ms), attempt: i + 1 })));
   }
   return result;

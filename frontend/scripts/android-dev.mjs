@@ -38,7 +38,8 @@ const configPath = new URL('../capacitor.config.json', import.meta.url);
 const original = readFileSync(configPath, 'utf8');
 try {
   const cfg = JSON.parse(original);
-  // http://localhost page origin + cleartext so the app can call the PC over plain HTTP.
+  // http://localhost page origin so the WebView may call the PC over plain HTTP
+  // (the debug manifest in android/app/src/debug allows cleartext; release builds don't).
   cfg.server = { ...(cfg.server ?? {}), androidScheme: 'http', cleartext: true };
   writeFileSync(configPath, JSON.stringify(cfg, null, 2));
   run('npx cap sync android');

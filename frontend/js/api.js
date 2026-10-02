@@ -91,6 +91,7 @@ async function raw(method, path, body, token) {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(25_000),
     });
   } catch {
     throw new ApiError(0, 'offline', "Can't reach BitMine. Check your connection and try again.");

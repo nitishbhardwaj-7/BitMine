@@ -120,6 +120,12 @@ minerSchema.index({ userId: 1, endAt: 1 });
 minerSchema.index({ userId: 1, status: 1 });
 minerSchema.index({ claimId: 1 }, { unique: true, partialFilterExpression: { claimId: { $exists: true } } });
 minerSchema.index({ purchaseId: 1 }, { unique: true, partialFilterExpression: { purchaseId: { $exists: true } } });
+// Claim miners only live until midnight; keep them 90 days for support, then let MongoDB drop them.
+// Paid and admin-granted miners are never expired by TTL.
+minerSchema.index(
+  { endAt: 1 },
+  { expireAfterSeconds: 90 * 24 * 60 * 60, partialFilterExpression: { source: { $in: ["claim", "super_claim"] } } },
+);
 
 // ── sessions: daily "Start mining" ──────────────────────────────────────
 const sessionSchema = new Schema(
@@ -139,6 +145,7 @@ const sessionSchema = new Schema(
   { timestamps: true },
 );
 sessionSchema.index({ userId: 1, localDate: 1 }, { unique: true });
+sessionSchema.index({ endsAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 
 // ── claims: one per rewarded ad ──────────────────────────────────────────
 const claimSchema = new Schema(
@@ -156,6 +163,8 @@ const claimSchema = new Schema(
 );
 claimSchema.index({ "admob.transactionId": 1 }, { unique: true, partialFilterExpression: { "admob.transactionId": { $type: "string" } } });
 claimSchema.index({ userId: 1, localDate: 1, kind: 1, tierProductId: 1, status: 1 });
+// One row per ad watched: kept 60 days (the AdMob transaction id guards replays well within that).
+claimSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 60 * 24 * 60 * 60 });
 
 // ── purchases ────────────────────────────────────────────────────────────
 const purchaseSchema = new Schema(
@@ -275,6 +284,7 @@ const notificationSchema = new Schema(
 notificationSchema.index({ userId: 1, dedupeKey: 1 }, { unique: true });
 notificationSchema.index({ userId: 1, createdAt: -1 });
 notificationSchema.index({ push: 1, createdAt: 1 });
+notificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 180 * 24 * 60 * 60 });
 
 // ── supportTickets ───────────────────────────────────────────────────────
 const supportTicketSchema = new Schema(
@@ -408,6 +418,8 @@ const storeSyncSchema = new Schema(
   { timestamps: true },
 );
 storeSyncSchema.index({ dueAt: 1 });
+// Follow-ups are consumed within an hour; anything older is a leftover from a failed run.
+storeSyncSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7 * 24 * 60 * 60 });
 
 // ── ledger: append-only ──────────────────────────────────────────────────
 const ledgerSchema = new Schema(

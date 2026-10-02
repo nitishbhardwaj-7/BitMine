@@ -32,20 +32,27 @@ export interface AppOptions {
   market?: MarketCache;
   /** Development-only claim/purchase shortcuts (never mounted in production). */
   devShortcuts?: boolean;
+  /** Express "trust proxy" setting (see config/env.ts TRUST_PROXY). */
+  trustProxy?: string | boolean;
 }
 
 export function createApp(opts: AppOptions) {
   const app = express();
 
   app.disable("x-powered-by");
-  // Production runs behind nginx on the same host; trust only that hop.
-  app.set("trust proxy", "loopback");
+  // Behind a reverse proxy: trust only that hop for the client IP (rate limits key on it).
+  app.set("trust proxy", opts.trustProxy ?? "loopback");
 
   app.use(helmet());
   // The mobile app sends no Origin header; only the admin site is a browser origin.
   app.use(cors({ origin: (origin, cb) => cb(null, !origin || opts.corsOrigins.includes(origin)) }));
   app.use(express.json({ limit: "100kb" }));
-  app.use(pinoHttp({ logger }));
+  app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === "/health" } }));
+  // Balances and tokens must never be served from a cache.
+  app.use(["/v1", "/webhooks"], (_req, res, next) => {
+    res.setHeader("Cache-Control", "no-store");
+    next();
+  });
 
   app.get("/health", (_req, res) => {
     const dbUp = mongoose.connection.readyState === 1;

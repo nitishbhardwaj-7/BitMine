@@ -31,12 +31,14 @@ export interface AccrualResult {
   usersCredited: number;
   msatCredited: number;
   skippedConflicts: number;
+  /** Users still behind the target hour after this run (capped at MAX_HOURS_PER_RUN per run). */
+  remaining: number;
 }
 
 export async function runAccrual(opts: { now?: number } = {}): Promise<AccrualResult> {
   const target = floorHour(opts.now ?? Date.now());
   const schedule = await getRateSchedule();
-  const result: AccrualResult = { usersProcessed: 0, usersCredited: 0, msatCredited: 0, skippedConflicts: 0 };
+  const result: AccrualResult = { usersProcessed: 0, usersCredited: 0, msatCredited: 0, skippedConflicts: 0, remaining: 0 };
 
   // Balances behind the target hour. Processed in batches; each user is independent.
   const cursor = Balance.find({ accruedUntil: { $lt: new Date(target) } })
@@ -60,6 +62,7 @@ export async function runAccrual(opts: { now?: number } = {}): Promise<AccrualRe
     }
   }
 
+  result.remaining = await Balance.countDocuments({ accruedUntil: { $lt: new Date(target) } });
   logger.info({ target: new Date(target).toISOString(), ...result }, "accrual run complete");
   return result;
 }
