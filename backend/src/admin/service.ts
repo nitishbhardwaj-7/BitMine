@@ -7,6 +7,7 @@ import {
   Ledger,
   Miner,
   Notification,
+  Product,
   Purchase,
   Session,
   SupportTicket,
@@ -127,7 +128,7 @@ export type WithdrawalStatus = (typeof WITHDRAWAL_STATUSES)[number];
 export async function withdrawalQueue(status: WithdrawalStatus) {
   const rows = await Withdrawal.find({ status }).sort({ createdAt: status === "paid" || status === "rejected" || status === "failed" ? -1 : 1 }).limit(200).lean();
   const users = await User.find({ _id: { $in: rows.map((r) => r.userId) } })
-    .select({ email: 1, createdAt: 1, reviewFlags: 1, status: 1 })
+    .select({ email: 1, name: 1, createdAt: 1, reviewFlags: 1, status: 1 })
     .lean();
   const byId = new Map(users.map((u) => [String(u._id), u]));
   const paidBefore = await Withdrawal.aggregate<{ _id: Types.ObjectId; n: number }>([
@@ -156,4 +157,156 @@ export async function announce(title: string, body: string) {
   }
   await flush();
   return count;
+}
+
+// ── dashboard: revenue and activity by UTC day ──────────────────────────
+
+export interface DayRow {
+  date: string;
+  newUsers: number;
+  /** Users who tapped Start mining that day. */
+  active: number;
+  /** Rewarded videos confirmed by AdMob. */
+  adViews: number;
+  /** adViews × eCPM / 1000: an estimate; exact figures are in the AdMob console. */
+  adsUsd: number;
+  purchases: number;
+  /** Store price (RevenueCat's reported price, or the catalog price when missing). Gross, before the store's cut. */
+  iapUsd: number;
+  paidSats: number;
+  minedMsat: number;
+}
+
+const dayOf = (field: string) => ({ $dateToString: { format: "%Y-%m-%d", date: `$${field}` } });
+
+/** One row per day for the last `days` days (oldest first), all days present. */
+export async function dailySeries(days: number, ecpmUsd: number, now = Date.now()): Promise<DayRow[]> {
+  const n = Math.min(Math.max(days, 1), 90);
+  const start = new Date(Math.floor(now / MS_PER_DAY) * MS_PER_DAY - (n - 1) * MS_PER_DAY);
+  const byDay = async <T extends { _id: string }>(model: mongoose.Model<any>, pipeline: mongoose.PipelineStage[]) =>
+    new Map((await model.aggregate<T>(pipeline)).map((r) => [r._id, r]));
+
+  const [users, sessions, claims, purchases, paid, mined] = await Promise.all([
+    byDay<{ _id: string; n: number }>(User, [{ $match: { createdAt: { $gte: start } } }, { $group: { _id: dayOf("createdAt"), n: { $sum: 1 } } }]),
+    byDay<{ _id: string; n: number }>(Session, [{ $match: { createdAt: { $gte: start } } }, { $group: { _id: dayOf("createdAt"), n: { $sum: 1 } } }]),
+    byDay<{ _id: string; n: number }>(Claim, [{ $match: { status: "verified", "admob.verifiedAt": { $gte: start } } }, { $group: { _id: dayOf("admob.verifiedAt"), n: { $sum: 1 } } }]),
+    byDay<{ _id: string; n: number; usd: number }>(Purchase, [
+      { $match: { status: "granted", purchasedAt: { $gte: start } } },
+      { $lookup: { from: Product.collection.name, localField: "productId", foreignField: "_id", as: "p", pipeline: [{ $project: { priceDisplayUsd: 1 } }] } },
+      { $group: { _id: dayOf("purchasedAt"), n: { $sum: 1 }, usd: { $sum: { $ifNull: ["$priceUsd", { $ifNull: [{ $first: "$p.priceDisplayUsd" }, 0] }] } } } },
+    ]),
+    byDay<{ _id: string; s: number }>(Withdrawal, [{ $match: { status: "paid", paidAt: { $gte: start } } }, { $group: { _id: dayOf("paidAt"), s: { $sum: "$amountSats" } } }]),
+    byDay<{ _id: string; m: number }>(Ledger, [{ $match: { type: "mining", createdAt: { $gte: start } } }, { $group: { _id: dayOf("createdAt"), m: { $sum: "$amountMsat" } } }]),
+  ]);
+
+  const rows: DayRow[] = [];
+  for (let i = 0; i < n; i++) {
+    const date = new Date(start.getTime() + i * MS_PER_DAY).toISOString().slice(0, 10);
+    const adViews = claims.get(date)?.n ?? 0;
+    rows.push({
+      date,
+      newUsers: users.get(date)?.n ?? 0,
+      active: sessions.get(date)?.n ?? 0,
+      adViews,
+      adsUsd: (adViews * ecpmUsd) / 1000,
+      purchases: purchases.get(date)?.n ?? 0,
+      iapUsd: purchases.get(date)?.usd ?? 0,
+      paidSats: paid.get(date)?.s ?? 0,
+      minedMsat: mined.get(date)?.m ?? 0,
+    });
+  }
+  return rows;
+}
+
+// ── purchases list ──────────────────────────────────────────────────────
+
+export const PURCHASE_PAGE = 50;
+
+export async function listPurchasesAdmin(filter: { status?: "granted" | "refunded"; store?: "app_store" | "play_store"; q?: string }, page = 1) {
+  const match: Record<string, unknown> = {};
+  if (filter.status) match.status = filter.status;
+  if (filter.store) match.store = filter.store;
+  if (filter.q) {
+    const q = filter.q.trim();
+    const users = await User.find({ email: { $regex: escapeRegex(q.toLowerCase()) } }).select({ _id: 1 }).limit(200).lean();
+    match.$or = [{ userId: { $in: users.map((u) => u._id) } }, { storeTransactionId: q }, ...(Types.ObjectId.isValid(q) && q.length === 24 ? [{ userId: new Types.ObjectId(q) }] : [])];
+  }
+  const skip = (Math.max(page, 1) - 1) * PURCHASE_PAGE;
+  const [rows, total] = await Promise.all([
+    Purchase.find(match).sort({ purchasedAt: -1 }).skip(skip).limit(PURCHASE_PAGE)
+      .populate<{ productId: { name: string; sku: string; kind: string; priceDisplayUsd: number } | null }>("productId", { name: 1, sku: 1, kind: 1, priceDisplayUsd: 1 }).lean(),
+    Purchase.countDocuments(match),
+  ]);
+  const users = new Map((await User.find({ _id: { $in: rows.map((r) => r.userId) } }).select({ email: 1, name: 1 }).lean()).map((u) => [String(u._id), u]));
+  return {
+    total,
+    page: Math.max(page, 1),
+    pages: Math.max(1, Math.ceil(total / PURCHASE_PAGE)),
+    rows: rows.map((p) => ({
+      id: String(p._id),
+      userId: String(p.userId),
+      email: users.get(String(p.userId))?.email ?? "",
+      name: users.get(String(p.userId))?.name ?? "",
+      product: p.productId?.name ?? "?",
+      kind: p.productId?.kind ?? "",
+      store: p.store,
+      /** Reported by RevenueCat when known; otherwise the catalog price. */
+      priceUsd: p.priceUsd ?? p.productId?.priceDisplayUsd ?? null,
+      priceIsList: p.priceUsd == null,
+      currency: p.currency,
+      status: p.status ?? "granted",
+      purchasedAt: p.purchasedAt,
+      storeTransactionId: p.storeTransactionId,
+      superUntil: p.grantedSuperUntil,
+    })),
+  };
+}
+
+/** Totals for the purchases page header. */
+export async function purchaseTotals(now = Date.now()) {
+  const agg = async (match: object) =>
+    (await Purchase.aggregate<{ n: number; usd: number }>([
+      { $match: { status: "granted", ...match } },
+      { $lookup: { from: Product.collection.name, localField: "productId", foreignField: "_id", as: "p", pipeline: [{ $project: { priceDisplayUsd: 1 } }] } },
+      { $group: { _id: null, n: { $sum: 1 }, usd: { $sum: { $ifNull: ["$priceUsd", { $ifNull: [{ $first: "$p.priceDisplayUsd" }, 0] }] } } } },
+    ]))[0] ?? { n: 0, usd: 0 };
+  const [all, d30, d7, refunded] = await Promise.all([
+    agg({}),
+    agg({ purchasedAt: { $gte: new Date(now - 30 * MS_PER_DAY) } }),
+    agg({ purchasedAt: { $gte: new Date(now - 7 * MS_PER_DAY) } }),
+    Purchase.countDocuments({ status: "refunded" }),
+  ]);
+  return { all, d30, d7, refunded };
+}
+
+// ── users list extras ───────────────────────────────────────────────────
+
+/** Balance and currently active hashpower for a set of users. */
+export async function userStats(ids: Types.ObjectId[], now = Date.now()) {
+  const [balances, gh] = await Promise.all([
+    Balance.find({ userId: { $in: ids } }).select({ userId: 1, availableMsat: 1, lockedMsat: 1, lifetimeMinedMsat: 1 }).lean(),
+    Miner.aggregate<{ _id: Types.ObjectId; gh: number }>([
+      { $match: { userId: { $in: ids }, revokedAt: null, startAt: { $lte: new Date(now) }, endAt: { $gt: new Date(now) } } },
+      { $group: { _id: "$userId", gh: { $sum: "$gh" } } },
+    ]),
+  ]);
+  const ghMap = new Map(gh.map((g) => [String(g._id), g.gh]));
+  const balMap = new Map(balances.map((b) => [String(b.userId), b]));
+  return (id: Types.ObjectId | string) => ({
+    availableMsat: balMap.get(String(id))?.availableMsat ?? 0,
+    lockedMsat: balMap.get(String(id))?.lockedMsat ?? 0,
+    lifetimeMinedMsat: balMap.get(String(id))?.lifetimeMinedMsat ?? 0,
+    gh: ghMap.get(String(id)) ?? 0,
+  });
+}
+
+export async function userTotals() {
+  const [total, active, suspended, deleted, withPurchase] = await Promise.all([
+    User.countDocuments({}),
+    User.countDocuments({ status: "active" }),
+    User.countDocuments({ status: "suspended" }),
+    User.countDocuments({ status: "deleted" }),
+    Purchase.distinct("userId", { status: "granted" }).then((ids) => ids.length),
+  ]);
+  return { total, active, suspended, deleted, withPurchase };
 }

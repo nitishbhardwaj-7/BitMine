@@ -102,6 +102,8 @@ describe("admin sign-in", () => {
     const dash = await b.req("GET", "/admin");
     expect(dash.status).toBe(200);
     expect(dash.text).toContain("Owed to all users");
+    expect(dash.text).toContain("Revenue by day");
+    expect(dash.text).toContain("<svg class=\"chart\"");
     expect(await AdminAudit.countDocuments({ action: "admin.login" })).toBe(1);
   });
 
@@ -218,7 +220,7 @@ describe("admin actions", () => {
 
   it("every page renders", async () => {
     const { b } = await signedIn();
-    for (const p of ["/admin", "/admin/withdrawals?status=needs_reconcile", "/admin/users", "/admin/support", "/admin/settings", "/admin/products", "/admin/content", "/admin/announce", "/admin/audit"]) {
+    for (const p of ["/admin", "/admin/withdrawals?status=needs_reconcile", "/admin/users", "/admin/users?q=example.com", "/admin/purchases", "/admin/purchases?status=granted&store=play_store&q=example", "/admin/support", "/admin/settings", "/admin/products", "/admin/content", "/admin/announce", "/admin/audit"]) {
       const r = await b.req("GET", p);
       expect(r.status, p).toBe(200);
     }

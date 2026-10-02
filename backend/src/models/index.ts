@@ -333,6 +333,8 @@ const appConfigSchema = new Schema(
      * reach the server, so claims can be tested end to end on them.
      */
     admobTestDevices: { type: [String], default: [] },
+    /** Estimated rewarded eCPM (USD per 1,000 views) for the dashboard's ad revenue estimate. */
+    adEcpmUsd: { type: Number, default: 4 },
     supportEmail: String,
     termsUrl: String,
     privacyUrl: String,

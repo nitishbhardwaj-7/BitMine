@@ -3,7 +3,7 @@
  * referral code, account deletion.
  */
 import type { Types } from "mongoose";
-import { User, Withdrawal } from "../models/index.js";
+import { Miner, SuperEntitlement, User, Withdrawal } from "../models/index.js";
 import { enforce } from "../lib/rateLimit.js";
 import { OPEN_STATUSES } from "../wallet/withdrawals.js";
 import { AppError, notFound } from "../lib/errors.js";
@@ -157,6 +157,12 @@ export async function deleteAccount(userId: Types.ObjectId, now = Date.now()) {
     { _id: userId },
     { $set: { status: "deleted", deletedAt: new Date(now), email: `deleted+${userId}@deleted.bitmine.invalid` }, $unset: { providers: 1 } },
   );
+  // Stop everything that would keep earning for an account nobody can use.
+  await Miner.updateMany(
+    { userId, revokedAt: null, endAt: { $gt: new Date(now) } },
+    { $set: { status: "revoked", revokedAt: new Date(now), revokeReason: "account_deleted" } },
+  );
+  await SuperEntitlement.updateMany({ userId, activeUntil: { $gt: new Date(now) } }, { $set: { activeUntil: new Date(now) } });
   await revokeAllForUser(userId);
   return { ok: true, email: u.email };
 }

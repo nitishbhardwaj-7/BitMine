@@ -6,7 +6,7 @@
  *  - repeated store syncs keep one set of follow-ups and are rate-limited
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { Balance, Claim, Ledger, Miner, Otp, StoreSync, User } from "./models/index.js";
+import { Balance, Claim, Ledger, Miner, Otp, StoreSync, SuperEntitlement, User } from "./models/index.js";
 import { clearTestDb, startTestDb, stopTestDb } from "./test/mongo.js";
 import { createUser } from "./test/fixtures.js";
 import { memoryMailer } from "./test/auth.js";
@@ -78,6 +78,21 @@ describe("withdrawals and account deletion", () => {
     await requestWithdrawal(userId, { amountSats: 2500, destination: "alice@speed.app" }, NOW);
     await expectAppError(deleteAccount(userId, NOW), "withdrawal_open");
     expect((await User.findById(userId).lean())!.status).toBe("active");
+  });
+
+  it("deleting an account stops its miners and Super tiers", async () => {
+    const userId = await createUser();
+    await Miner.create({ userId, source: "paid", gh: 2000, startAt: new Date(NOW - 1000), endAt: new Date(NOW + 100 * 86_400_000) });
+    const product = (await import("./models/index.js")).Product;
+    const tier = (await product.findOne({ sku: "super_pro" }).lean())!;
+    await SuperEntitlement.create({ userId, productId: tier._id, activeUntil: new Date(NOW + 30 * 86_400_000) });
+
+    await deleteAccount(userId, NOW);
+
+    const m = (await Miner.findOne({ userId }).lean())!;
+    expect(m.status).toBe("revoked");
+    expect(m.revokedAt!.getTime()).toBe(NOW);
+    expect((await SuperEntitlement.findOne({ userId }).lean())!.activeUntil.getTime()).toBe(NOW);
   });
 
   it("a request refused for an open withdrawal leaves the 2FA code usable", async () => {

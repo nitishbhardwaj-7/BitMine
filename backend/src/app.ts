@@ -60,7 +60,7 @@ export function createApp(opts: AppOptions) {
   });
 
   app.use("/webhooks", webhooksRouter({ ssv: opts.ssv, store: opts.store, revenueCatWebhookAuth: opts.revenueCatWebhookAuth }));
-  if (opts.admin) app.use("/admin", adminRouter(opts.admin));
+  if (opts.admin) app.use("/admin", adminRouter({ market: opts.market, ...opts.admin }));
   app.use("/v1/public", publicRouter({ market: opts.market }));
   if (opts.devShortcuts && process.env.NODE_ENV !== "production") {
     app.use("/v1/dev", devRouter({ jwtAccessSecret: opts.jwtAccessSecret }));
