@@ -450,7 +450,7 @@ export const actions = {
   about() {
     openSheet('About BitMine', `
       <div class="stack text-center">
-        <div class="auth-logo" style="margin: 0 auto; color: #fff;">₿</div>
+        <div class="auth-logo" style="margin: 0 auto;"><img src="./assets/images/logo.png" alt="BitMine"/></div>
         <h4 style="font-size: 16px; font-weight: 800;">BitMine v${esc(config.appVersion)}</h4>
         <p class="bm-hint">Cloud Bitcoin mining rewards with Lightning withdrawals. Earnings are credited hourly and paid in sats.</p>
         ${state.config?.supportEmail ? `<p class="bm-hint">Contact: ${esc(state.config.supportEmail)}</p>` : ''}

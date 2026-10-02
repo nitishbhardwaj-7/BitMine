@@ -21,7 +21,7 @@ function authLayout({ title, subtitle, card, features = false, backBtn = true })
         ${orbs}
         <div class="auth-brand">
           ${backBtn ? `<button class="hero-icon-btn back-btn-circle" aria-label="Back" style="margin-right: 4px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg></button>` : ''}
-          <div class="auth-logo">₿</div><span>BitMine</span>
+          <div class="auth-logo"><img src="./assets/images/logo.png" alt="BitMine"/></div><span>BitMine</span>
         </div>
         <h1>${title}</h1>
         ${subtitle ? `<p>${subtitle}</p>` : ''}

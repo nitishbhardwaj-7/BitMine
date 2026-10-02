@@ -80,11 +80,13 @@ textarea.bm-input { min-height: 110px; resize: vertical; line-height: 1.45; }
 }
 .auth-screen::-webkit-scrollbar { display: none; }
 .auth-hero { position: relative; padding: calc(var(--safe-area-top) + 28px) 24px 26px; color: #fff; flex-shrink: 0; overflow: hidden; }
-.auth-hero .hero-liquid-lights-wrapper { position: absolute; inset: 0; pointer-events: none; }
 .auth-brand { position: relative; display: flex; align-items: center; gap: 10px; margin-bottom: 26px; }
 .auth-logo {
-  width: 40px; height: 40px; border-radius: 13px; background: var(--gradient-purple-glow); display: flex; align-items: center;
-  justify-content: center; font-weight: 800; font-size: 20px; box-shadow: var(--shadow-purple-pulse);
+  width: 44px; height: 44px; display: flex; align-items: center;
+  justify-content: center; filter: drop-shadow(0 4px 14px rgba(109, 53, 245, 0.6));
+}
+.auth-logo img {
+  width: 100%; height: 100%; object-fit: contain; display: block;
 }
 .auth-brand span { font-size: 19px; font-weight: 800; letter-spacing: -0.2px; }
 .auth-hero h1 { position: relative; font-size: 26px; font-weight: 800; line-height: 1.2; letter-spacing: -0.4px; }

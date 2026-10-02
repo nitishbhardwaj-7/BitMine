@@ -27,7 +27,7 @@ const screens = Object.assign({}, ...modules.map((m) => m.screens ?? {}), {
     nav: false,
     dark: true,
     render: () => `
-      <div class="auth-screen"><div class="auth-hero"><div class="auth-brand"><div class="auth-logo">₿</div><span>BitMine</span></div>
+      <div class="auth-screen"><div class="auth-hero"><div class="auth-brand"><div class="auth-logo"><img src="./assets/images/logo.png" alt="BitMine"/></div><span>BitMine</span></div>
         <h1>Update required</h1><p>${state.config?.updateMessage ?? 'A new version of BitMine is available.'}</p></div>
         <div class="auth-card"><p class="bm-hint">Please update to keep mining. Your balance and miners are safe.</p>
         <button class="btn-primary btn-block" data-act="open-store">Update BitMine</button></div></div>`,

@@ -309,6 +309,15 @@
   -webkit-text-fill-color: transparent;
 }
 
+.brand-logo-img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(109, 53, 245, 0.6));
+  display: block;
+  flex-shrink: 0;
+}
+
 .hero-top-icons {
   display: flex;
   align-items: center;
