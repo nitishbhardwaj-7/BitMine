@@ -13,6 +13,11 @@ export function fmtSats(msat, { unit = true } = {}) {
 }
 
 /** Sats with 3 decimals, for tiny amounts that change every second. */
+/** Whole sats for normal amounts, 3 decimals under 10 sats (so small rates don't read as 0). */
+export function fmtSatsAuto(msat) {
+  return sats(msat) >= 10 ? fmtSats(msat) : fmtSatsPrecise(msat);
+}
+
 export function fmtSatsPrecise(msat) {
   return `${((msat || 0) / 1000).toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} sats`;
 }

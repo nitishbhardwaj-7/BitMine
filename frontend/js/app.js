@@ -111,10 +111,12 @@ const ctx = {
     }
     stopPolling();
     await signOutPurchases();
-    auth.clear();
-    reset();
+    // Move to the welcome screen first: clearing the session notifies the
+    // "session ended elsewhere" listener, which must see an auth screen here.
     history = [];
     current = { id: 'welcome', params: {} };
+    auth.clear();
+    reset();
     render({ fresh: true });
   },
 };

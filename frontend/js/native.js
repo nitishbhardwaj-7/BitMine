@@ -210,4 +210,11 @@ export async function setStatusBar(light) {
   }
 }
 
-export const deviceTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+const TZ_ALIASES = {
+  'Asia/Calcutta': 'Asia/Kolkata', 'Asia/Katmandu': 'Asia/Kathmandu', 'Asia/Saigon': 'Asia/Ho_Chi_Minh',
+  'Asia/Rangoon': 'Asia/Yangon', 'Europe/Kiev': 'Europe/Kyiv', 'Asia/Istanbul': 'Europe/Istanbul', 'America/Buenos_Aires': 'America/Argentina/Buenos_Aires',
+};
+export const deviceTimezone = () => {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  return TZ_ALIASES[tz] ?? tz;
+};

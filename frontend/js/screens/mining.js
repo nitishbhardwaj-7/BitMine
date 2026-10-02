@@ -9,7 +9,7 @@ import { get, post, ApiError } from '../api.js';
 import { esc, header, skeleton, errorCard, emptyState, toast, openSheet, closeSheet } from '../ui.js';
 import { icons } from '../icons.js';
 import { state, refresh, loadKeyed } from '../store.js';
-import { fmtHash, fmtSats, fmtUsd, fmtDate } from '../format.js';
+import { fmtHash, fmtSats, fmtSatsAuto, fmtUsd, fmtDate } from '../format.js';
 import { config } from '../config.js';
 import { isNative, platform, showRewardedAd, buyProduct, storePrices } from '../native.js';
 import { claimTracksHTML, countdownText, minerCard, minerStatus } from './parts.js';
@@ -31,7 +31,7 @@ function boostScreen() {
           <div style="margin-top: 14px; text-align: center;">
             <p style="font-size: 12px; color: rgba(255,255,255,0.7); text-transform: uppercase; font-weight: 700; letter-spacing: 0.4px;">Total hashrate</p>
             <h3 style="font-size: 30px; font-weight: 800; margin-top: 4px;" class="live-gh">${fmtHash(s.gh.total)}</h3>
-            <p style="font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 4px;">≈ <span data-live="per-day">${fmtSats(s.msatPerSecond * 86_400_000 / 1000)}</span> per day at this rate</p>
+            <p style="font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 4px;">≈ <span data-live="per-day">${fmtSatsAuto(s.msatPerSecond * 86_400)}</span> per day at this rate</p>
           </div>
           ${s.session ? '' : `<button class="btn-white" style="margin-top: 14px; width: 100%; padding: 11px;" data-act="start-mining">Start mining</button>`}
         </div>
