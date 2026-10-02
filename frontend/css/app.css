@@ -252,13 +252,6 @@ textarea.bm-input { min-height: 110px; resize: vertical; line-height: 1.45; }
 /* ==========================================================================
    Home hero: smooth scrolling + live BTC counter (see js/heroCollapse.js)
    ========================================================================== */
-/* The hero overlays the scroll view. Input passes through it so the list scrolls
-   natively; only the interactive parts catch taps. */
-.home-hero.collapsing-hero { pointer-events: none !important; }
-.home-hero.collapsing-hero .hero-top-bar,
-.home-hero.collapsing-hero .hero-balance-wrapper,
-.home-hero.collapsing-hero .action-shortcut-group,
-.home-hero.collapsing-hero .security-alert-card { pointer-events: auto; }
 /* While the list is moving, pause the decorations so a frame only moves a few layers. */
 .home-hero.is-scrolling .hero-liquid-orb-1,
 .home-hero.is-scrolling .hero-liquid-orb-2,
@@ -278,11 +271,6 @@ html.device .hero-liquid-orb-3, html.device .hero-liquid-orb-4 { filter: blur(18
 .bal-micro { font-size: 0.55em; font-weight: 700; opacity: 0.55; letter-spacing: 0; }
 .bal-unit { font-size: 0.48em; font-weight: 700; opacity: 0.8; margin-left: 6px; letter-spacing: 0; }
 
-/* Transform-based collapse (js/heroCollapse.js): the hero keeps its 430px height and moves as
-   a GPU layer; the bottom corners square off once docked instead of changing every frame. */
-.home-hero.collapsing-hero { will-change: transform !important; contain: layout paint style; }
-.home-hero.collapsing-hero .hero-collapsing-content { will-change: transform; }
-.home-hero.collapsing-hero.navbar-docked { border-bottom-left-radius: 0 !important; border-bottom-right-radius: 0 !important; }
 /* Blurred orbs are pre-rastered layers; keep them from re-rastering under the moving hero. */
 .home-hero .hero-liquid-orb-1, .home-hero .hero-liquid-orb-2,
 .home-hero .hero-liquid-orb-3, .home-hero .hero-liquid-orb-4 { will-change: transform, opacity; }
@@ -304,3 +292,23 @@ html.device .network-pill, html.device .pct-pill.glass-light { background-color:
 html.device, html.device * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 html.device input, html.device textarea, html.device .lesson-body, html.device .lesson-body *,
 html.device .bubble, html.device .faq-item p, html.device .referral-code-text { -webkit-user-select: text; user-select: text; }
+
+/* ==========================================================================
+   Home: pinned hero + wiping content sheet (js/heroCollapse.js)
+   The top bar is fixed above everything; the hero is `position: sticky` at the
+   top of the scroll view; the content sheet comes after it with a higher
+   z-index and slides over it. Overrides the prototype's absolute, height-
+   animated hero in screens.css. Nothing here changes per scroll frame.
+   ========================================================================== */
+.home-topbar { position: absolute; top: 0; left: 0; right: 0; z-index: 60; padding: 0 16px; background: #070611; transition: box-shadow .2s; }
+.home-topbar.docked { box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45); border-bottom: 1px solid rgba(139, 77, 255, 0.22); }
+.home-topbar .hero-top-bar { will-change: auto; }
+.home-scroll { position: absolute !important; top: calc(var(--safe-area-top, 48px) + 50px); left: 0; right: 0; bottom: 0; height: auto !important; background: #070611 !important; overscroll-behavior-y: contain; }
+.home-hero.collapsing-hero {
+  position: sticky !important; top: 0 !important; z-index: 0 !important;
+  height: auto !important; transform: none !important; will-change: auto !important;
+  border-radius: 0 !important; box-shadow: none !important; padding: 8px 16px 30px !important;
+  pointer-events: auto !important; contain: paint;
+}
+.home-hero.collapsing-hero .hero-collapsing-content { transform: none !important; }
+.home-sheet { position: relative; z-index: 1; background: var(--bg-page); border-radius: 26px 26px 0 0; min-height: 100%; margin-top: -18px; padding-top: 4px; box-shadow: 0 -10px 30px rgba(7, 6, 17, 0.3); }

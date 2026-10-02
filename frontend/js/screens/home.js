@@ -64,13 +64,9 @@ export const screens = {
       const lifetime = state.wallet?.lifetimeMinedMsat ?? s?.balance.lifetimeMinedMsat ?? 0;
       return `
       <div class="home-screen-container" id="homeScreenContainer">
-        <div class="home-hero collapsing-hero" id="homeHero">
-          <div class="hero-liquid-lights-wrapper" id="heroLiquidLights">
-            <div class="hero-liquid-orb-1"></div><div class="hero-liquid-orb-2"></div>
-            <div class="hero-liquid-orb-3"></div><div class="hero-liquid-orb-4"></div>
-          </div>
-          <div class="hero-collapsing-content" id="heroCollapsingContent">
-            <div class="hero-top-bar hero-stagger-0" id="heroTopBar">
+        <!-- Fixed top bar: stays above the sheet (see css/app.css "Home: pinned hero"). -->
+        <div class="home-topbar" id="homeTopBar">
+          <div class="hero-top-bar hero-stagger-0" id="heroTopBar">
               <div class="hero-brand">
                 <button class="hero-icon-btn" aria-label="Settings" data-go="settings">${icons.menu}</button>
                 <img src="./assets/images/logo.png" class="brand-logo-img" alt="BitMine"/>
@@ -82,7 +78,16 @@ export const screens = {
                 <button class="hero-icon-btn" aria-label="Profile" data-go="profile">${icons.user}</button>
               </div>
             </div>
+        </div>
 
+        <div class="screen-scroll-view home-scroll" id="homeScrollView">
+        <!-- Pinned hero: the sheet below wipes over it as you scroll. -->
+        <div class="home-hero collapsing-hero" id="homeHero">
+          <div class="hero-liquid-lights-wrapper" id="heroLiquidLights">
+            <div class="hero-liquid-orb-1"></div><div class="hero-liquid-orb-2"></div>
+            <div class="hero-liquid-orb-3"></div><div class="hero-liquid-orb-4"></div>
+          </div>
+          <div class="hero-collapsing-content" id="heroCollapsingContent">
             <div class="hero-balance-section" id="heroBalanceSection">
               <div class="hero-balance-wrapper hero-stagger-3" id="heroBalanceWrapper">
                 <div class="hero-balance-glass-card" id="heroBalanceCard">
@@ -115,9 +120,8 @@ export const screens = {
           </div>
         </div>
 
-        <div class="screen-scroll-view" id="homeScrollView">
-          <div class="hero-scroll-spacer" id="heroScrollSpacer"></div>
-          <div class="screen-content-padding" style="margin-top: 6px; gap: 18px;">
+        <div class="home-sheet">
+          <div class="screen-content-padding" style="gap: 18px;">
             ${tickerHTML()}
 
             <div>
@@ -214,6 +218,7 @@ export const screens = {
               <div class="section-header-row"><span class="section-title">Recent Earnings</span><span class="section-link" data-go="transactions">History</span></div>
               <div class="settlement-history-card">${state.daily ? settlementRows(state.daily, 4) : skeleton(3)}</div>
             </div>
+          </div>
           </div>
         </div>
       </div>`;
