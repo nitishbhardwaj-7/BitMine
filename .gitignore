@@ -9,3 +9,6 @@ coverage/
 !.env.example
 *.log
 .DS_Store
+
+# Local APK copies at the repo root (handed to the user, never committed)
+/*.apk
