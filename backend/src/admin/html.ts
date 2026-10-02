@@ -131,6 +131,51 @@ ${opts.csrf
 <main>${opts.flash ? html`<div class="flash ${opts.flash.kind === "err" ? "err" : ""}">${opts.flash.text}</div>` : ""}${opts.body}</main></div></body></html>`.value;
 }
 
+const LOGIN_CSS = `
+.login{min-height:100vh;display:grid;grid-template-columns:1.1fr 1fr;width:100%}
+.login-hero{background:var(--hero);color:#fff;padding:48px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.login-hero .orb{position:absolute;border-radius:50%;filter:blur(40px);opacity:.75;pointer-events:none}
+.login-hero .o1{width:420px;height:420px;background:rgba(109,53,245,.55);top:-120px;right:-120px}.login-hero .o2{width:320px;height:320px;background:rgba(37,16,92,.9);bottom:-100px;left:-60px}.login-hero .o3{width:200px;height:200px;background:rgba(160,102,255,.35);top:40%;left:35%}
+.login-hero>*{position:relative}
+.login-hero .brand{font-size:20px}.login-hero .brand b{width:44px;height:44px;border-radius:14px;font-size:22px}
+.login-hero h1{font-size:40px;line-height:1.1;letter-spacing:-.8px;margin:0 0 14px;max-width:460px}.login-hero p{font-size:16px;color:rgba(255,255,255,.72);margin:0;max-width:440px;line-height:1.5}
+.login-hero ul{list-style:none;padding:0;margin:28px 0 0;display:grid;gap:12px;max-width:440px}.login-hero li{display:flex;gap:12px;align-items:center;font-weight:600;color:rgba(255,255,255,.85)}
+.login-hero li i{width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.1);display:grid;place-items:center;flex-shrink:0}.login-hero li svg{width:16px;height:16px}
+.login-hero .foot{font-size:12px;color:rgba(255,255,255,.45)}
+.login-side{display:grid;place-items:center;padding:40px 24px;background:var(--page)}
+.login-card{width:100%;max-width:420px;background:#fff;border:1px solid var(--line);border-radius:24px;padding:36px;box-shadow:0 14px 36px -4px rgba(15,14,25,.12),0 4px 12px -2px rgba(109,53,245,.05)}
+.login-card h2{font-size:26px;letter-spacing:-.5px;margin:0 0 6px}.login-card .sub{color:var(--muted);font-size:14px;margin:0 0 26px;font-weight:600}
+.login-card label{font-size:12.5px;gap:7px;margin-bottom:16px}.login-card input{padding:13px 14px;font-size:15px;border-radius:13px}
+.login-card button.btn{width:100%;padding:13px;font-size:15px;border-radius:13px;margin-top:6px}
+.login-card .flash{margin-bottom:18px}.login-card .hint{font-size:12px;color:var(--faint);text-align:center;margin:18px 0 0;font-weight:600}
+@media(max-width:900px){.login{grid-template-columns:1fr}.login-hero{padding:32px 24px 28px}.login-hero h1{font-size:28px}.login-hero ul,.login-hero .foot{display:none}.login-side{padding:24px 16px 40px}.login-card{padding:26px}}
+`;
+
+/** Stand-alone sign-in page: hero on the left, form on the right. */
+export function loginLayout(opts: { error?: string | null; email?: string }) {
+  const feat = (d: string, text: string) => html`<li><i>${icon(d)}</i>${text}</li>`;
+  return html`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign in · BitMine Admin</title><meta name="robots" content="noindex"><meta name="theme-color" content="#0B0A18">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
+<style>${raw(CSS)}${raw(LOGIN_CSS)}</style></head><body>
+<div class="login">
+  <section class="login-hero"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span>
+    <div class="brand"><b>₿</b><div>BitMine<small>ADMIN</small></div></div>
+    <div><h1>Run your mining business from one place.</h1><p>Revenue, purchases, users and Lightning payouts, with every action recorded.</p>
+      <ul>${feat("M12 19V5m0 0-6 6m6-6 6 6", "Approve withdrawals sent from your Speed account")}${feat("M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z", "Day-by-day revenue, ads and payouts")}${feat("M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m14-10a4 4 0 1 0-8 0 4 4 0 0 0 8 0z", "Every user, purchase and support request")}</ul></div>
+    <div class="foot">Private area · sign-ins are limited and logged</div>
+  </section>
+  <section class="login-side"><form method="post" action="/admin/login" class="login-card">
+    <h2>Welcome back</h2><p class="sub">Sign in to the BitMine admin panel.</p>
+    ${opts.error ? html`<div class="flash err">${opts.error}</div>` : ""}
+    <label>Email<input name="email" type="email" value="${opts.email ?? ""}" autocomplete="username" placeholder="admin@bitmine.com" required autofocus></label>
+    <label>Password<input name="password" type="password" autocomplete="current-password" placeholder="Your password" required></label>
+    <button class="btn">Sign in</button>
+    <p class="hint">10 attempts per 15 minutes. Forgot it? Reset it on the server with the create-admin script.</p>
+  </form></section>
+</div></body></html>`.value;
+}
+
 export const csrfField = (token: string) => html`<input type="hidden" name="_csrf" value="${token}">`;
 
 export function statusPill(status: string) {

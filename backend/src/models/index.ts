@@ -347,9 +347,6 @@ const adminUserSchema = new Schema(
   {
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true, select: false },
-    totpSecret: { type: String, required: true, select: false },
-    /** Last TOTP step accepted: a code can't be replayed within its window. */
-    lastTotpStep: { type: Number, default: 0 },
     active: { type: Boolean, default: true },
     lastLoginAt: Date,
   },
@@ -360,7 +357,7 @@ const adminSessionSchema = new Schema(
   {
     adminId: { type: ObjectId, ref: "AdminUser", required: true },
     tokenHash: { type: String, required: true, unique: true },
-    /** "password" = passed step 1 only; "full" = signed in. */
+    /** Always "full" now (the authenticator step was removed); kept for older sessions. */
     stage: { type: String, enum: ["password", "full"], required: true },
     csrf: { type: String, required: true },
     ip: String,

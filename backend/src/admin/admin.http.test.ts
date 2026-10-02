@@ -11,8 +11,7 @@ import { signAccessToken } from "../auth/tokens.js";
 import { ensureBalance } from "../wallet/balances.js";
 import { requestWithdrawal } from "../wallet/withdrawals.js";
 import { createApp } from "../app.js";
-import { createAdmin } from "./auth.js";
-import { base32Encode, totpCode, verifyTotp } from "./totp.js";
+import { createAdmin, setAdminPassword } from "./auth.js";
 
 const SECRET = "test-secret-at-least-32-characters-long!!";
 let server: Server;
@@ -36,16 +35,6 @@ beforeEach(async () => {
   await seedAll();
 });
 
-describe("TOTP", () => {
-  it("matches the RFC 6238 SHA-1 test vector", () => {
-    const secret = base32Encode(Buffer.from("12345678901234567890"));
-    expect(totpCode(secret, 59_000)).toBe("287082");
-    expect(totpCode(secret, 1_111_111_109_000)).toBe("081804");
-    expect(verifyTotp(secret, "287082", 59_000 + 30_000)).not.toBeNull(); // one step of drift allowed
-    expect(verifyTotp(secret, "287082", 59_000 + 90_000)).toBeNull();
-  });
-});
-
 /** A tiny cookie-keeping browser. */
 class Browser {
   cookie = "";
@@ -66,13 +55,12 @@ class Browser {
 }
 
 async function signedIn() {
-  const { secret } = await createAdmin("boss@example.com", "admin password 123");
+  await createAdmin("boss@example.com", "admin password 123");
   const b = new Browser();
-  await b.req("POST", "/admin/login", { email: "boss@example.com", password: "admin password 123" });
-  const r = await b.req("POST", "/admin/login/totp", { code: totpCode(secret) });
+  const r = await b.req("POST", "/admin/login", { email: "boss@example.com", password: "admin password 123" });
   expect(r.status).toBe(303);
   const dash = await b.req("GET", "/admin");
-  return { b, csrf: b.csrf(dash.text), secret };
+  return { b, csrf: b.csrf(dash.text) };
 }
 
 async function userWith(sats: number) {
@@ -90,28 +78,32 @@ describe("admin sign-in", () => {
     expect(r.location).toBe("/admin/login");
   });
 
-  it("needs the password and then the authenticator code", async () => {
-    const { secret } = await createAdmin("boss@example.com", "admin password 123");
+  it("signs in with email and password only", async () => {
+    await createAdmin("boss@example.com", "admin password 123");
     const b = new Browser();
-    expect((await b.req("POST", "/admin/login", { email: "boss@example.com", password: "wrong" })).status).toBe(401);
-    const step1 = await b.req("POST", "/admin/login", { email: "boss@example.com", password: "admin password 123" });
-    expect(step1.text).toContain("Authenticator code");
-    expect((await b.req("GET", "/admin")).status).toBe(303); // half-signed-in isn't signed in
-    expect((await b.req("POST", "/admin/login/totp", { code: "000000" === totpCode(secret) ? "111111" : "000000" })).status).toBe(401);
-    expect((await b.req("POST", "/admin/login/totp", { code: totpCode(secret) })).status).toBe(303);
+    const page = await b.req("GET", "/admin/login");
+    expect(page.text).toContain("Welcome back");
+    expect(page.text).not.toContain("Authenticator");
+    const wrong = await b.req("POST", "/admin/login", { email: "boss@example.com", password: "wrong" });
+    expect(wrong.status).toBe(401);
+    expect(wrong.text).toContain("Email or password is incorrect");
+    expect((await b.req("GET", "/admin")).status).toBe(303);
+    expect((await b.req("POST", "/admin/login", { email: "boss@example.com", password: "admin password 123" })).status).toBe(303);
     const dash = await b.req("GET", "/admin");
     expect(dash.status).toBe(200);
     expect(dash.text).toContain("Owed to all users");
     expect(dash.text).toContain("Revenue by day");
     expect(dash.text).toContain("<svg class=\"chart\"");
-    expect(await AdminAudit.countDocuments({ action: "admin.login" })).toBe(1);
+    expect((await AdminAudit.findOne({ action: "admin.login" }).lean())).toBeTruthy();
   });
 
-  it("an authenticator code can't be used twice", async () => {
-    const { secret } = await signedIn();
+  it("resetting the password signs the admin out everywhere", async () => {
+    const { b } = await signedIn();
+    expect(await setAdminPassword("boss@example.com", "a new password 456")).toBe(true);
+    expect((await b.req("GET", "/admin")).status).toBe(303);
     const b2 = new Browser();
-    await b2.req("POST", "/admin/login", { email: "boss@example.com", password: "admin password 123" });
-    expect((await b2.req("POST", "/admin/login/totp", { code: totpCode(secret) })).status).toBe(401);
+    expect((await b2.req("POST", "/admin/login", { email: "boss@example.com", password: "admin password 123" })).status).toBe(401);
+    expect((await b2.req("POST", "/admin/login", { email: "boss@example.com", password: "a new password 456" })).status).toBe(303);
   });
 
   it("forms without the CSRF token are refused", async () => {

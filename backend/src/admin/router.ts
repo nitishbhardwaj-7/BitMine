@@ -4,8 +4,8 @@ import { SupportTicket, User } from "../models/index.js";
 import type { SpeedClient } from "../wallet/speed.js";
 import { approveWithdrawal, getWithdrawalForAdmin, rejectWithdrawal, resolveReconcile } from "../wallet/withdrawals.js";
 import { adminReply, closeTicket } from "../support/service.js";
-import { audit, passwordStep, requireAdmin, signOut, totpStep } from "./auth.js";
-import { csrfField, day, dayChart, dt, dtShort, html, initials, kpi, layout, legend, num, raw, sats, satsUsd, short, statusPill, usd, userLabel, type Html } from "./html.js";
+import { audit, requireAdmin, signIn, signOut } from "./auth.js";
+import { csrfField, day, dayChart, dt, dtShort, html, initials, kpi, layout, legend, loginLayout, num, raw, sats, satsUsd, short, statusPill, usd, userLabel, type Html } from "./html.js";
 import type { MarketCache } from "../content/market.js";
 import { AppConfig } from "../models/index.js";
 import {
@@ -68,21 +68,6 @@ const f = (req: Request, name: string) => String((req.body as Record<string, unk
 /** Route parameter as a string. */
 export const param = (req: Request, name: string) => String(req.params[name] ?? "");
 
-function loginPage(res: Response, step: "password" | "totp", error?: string) {
-  const body =
-    step === "password"
-      ? html`<div class="card" style="max-width:380px;margin:60px auto"><h1>BitMine Admin</h1><p class="muted">Sign in</p>
-         <form method="post" action="/admin/login" class="form">
-           <label>Email<input name="email" type="email" autocomplete="username" required></label>
-           <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
-           <button class="btn">Continue</button></form></div>`
-      : html`<div class="card" style="max-width:380px;margin:60px auto"><h1>Authenticator code</h1><p class="muted">Enter the 6-digit code from your authenticator app.</p>
-         <form method="post" action="/admin/login/totp" class="form">
-           <label>Code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="\\d{6}" maxlength="6" required autofocus></label>
-           <button class="btn">Sign in</button></form></div>`;
-  res.type("html").send(layout({ title: "Sign in", path: "/admin/login", flash: error ? { kind: "err", text: error } : null, body }));
-}
-
 export function adminRouter(opts: AdminOptions) {
   const r = Router();
   r.use(express.urlencoded({ extended: false, limit: "50kb" }));
@@ -93,15 +78,11 @@ export function adminRouter(opts: AdminOptions) {
   });
 
   // ── sign-in ──
-  r.get("/login", (_req, res) => loginPage(res, "password"));
+  r.get("/login", (_req, res) => res.type("html").send(loginLayout({})));
   r.post("/login", async (req, res) => {
-    const err = await passwordStep(req, res, f(req, "email"), String((req.body as Record<string, string>).password ?? ""), opts.secureCookies);
-    if (err) return loginPage(res.status(401), "password", err);
-    loginPage(res, "totp");
-  });
-  r.post("/login/totp", async (req, res) => {
-    const err = await totpStep(req, res, f(req, "code"), opts.secureCookies);
-    if (err) return loginPage(res.status(401), err.includes("timed out") ? "password" : "totp", err);
+    const email = f(req, "email");
+    const err = await signIn(req, res, email, String((req.body as Record<string, string>).password ?? ""), opts.secureCookies);
+    if (err) return void res.status(401).type("html").send(loginLayout({ error: err, email }));
     res.redirect(303, "/admin");
   });
 

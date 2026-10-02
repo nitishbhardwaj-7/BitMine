@@ -1,8 +1,8 @@
 /**
- * Admin sign-in: email + password, then an authenticator-app code (TOTP).
- * Sessions are random tokens in an HttpOnly, SameSite=Strict cookie scoped to
- * /admin, stored hashed with a 12-hour lifetime. Every form carries a CSRF
- * token tied to the session.
+ * Admin sign-in: email + password. Sessions are random tokens in an HttpOnly,
+ * SameSite=Strict cookie scoped to /admin, stored hashed with a 12-hour
+ * lifetime. Every form carries a CSRF token tied to the session. Sign-in is
+ * rate-limited per IP and per account (10 attempts per 15 minutes).
  */
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import type { Request, RequestHandler, Response } from "express";
@@ -10,11 +10,9 @@ import type { Types } from "mongoose";
 import { AdminAudit, AdminSession, AdminUser } from "../models/index.js";
 import { hashPassword, verifyPassword, dummyVerify } from "../auth/password.js";
 import { hit } from "../lib/rateLimit.js";
-import { newTotpSecret, otpauthUrl, verifyTotp } from "./totp.js";
 
 export const COOKIE = "bm_admin";
 const SESSION_MS = 12 * 60 * 60 * 1000;
-const PASSWORD_STAGE_MS = 5 * 60 * 1000;
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
@@ -43,22 +41,20 @@ export function clearCookie(res: Response) {
   res.setHeader("Set-Cookie", `${COOKIE}=; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=0`);
 }
 
-async function createSession(res: Response, adminId: Types.ObjectId, stage: "password" | "full", ip: string, secure: boolean) {
+async function createSession(res: Response, adminId: Types.ObjectId, ip: string, secure: boolean) {
   const token = randomBytes(32).toString("base64url");
-  const ttl = stage === "full" ? SESSION_MS : PASSWORD_STAGE_MS;
-  await AdminSession.create({ adminId, tokenHash: sha(token), stage, csrf: randomBytes(24).toString("base64url"), ip, expiresAt: new Date(Date.now() + ttl) });
-  setCookie(res, token, ttl, secure);
+  await AdminSession.create({ adminId, tokenHash: sha(token), stage: "full", csrf: randomBytes(24).toString("base64url"), ip, expiresAt: new Date(Date.now() + SESSION_MS) });
+  setCookie(res, token, SESSION_MS, secure);
 }
 
 async function sessionFrom(req: Request) {
   const token = readCookie(req, COOKIE);
   if (!token) return null;
-  const s = await AdminSession.findOne({ tokenHash: sha(token), expiresAt: { $gt: new Date() } }).lean();
-  return s;
+  return AdminSession.findOne({ tokenHash: sha(token), expiresAt: { $gt: new Date() } }).lean();
 }
 
-/** Step 1. Returns an error message, or null when the TOTP step should be shown. */
-export async function passwordStep(req: Request, res: Response, email: string, password: string, secure: boolean): Promise<string | null> {
+/** Signs in. Returns an error message for the page, or null when the session cookie was set. */
+export async function signIn(req: Request, res: Response, email: string, password: string, secure: boolean): Promise<string | null> {
   const ip = req.ip ?? "unknown";
   const allowed = (await hit(`admin-login-ip:${ip}`, 10, 15 * 60 * 1000)) && (await hit(`admin-login:${email.toLowerCase()}`, 10, 15 * 60 * 1000));
   if (!allowed) return "Too many attempts. Wait 15 minutes.";
@@ -68,26 +64,9 @@ export async function passwordStep(req: Request, res: Response, email: string, p
     return "Email or password is incorrect.";
   }
   if (!(await verifyPassword(password, admin.passwordHash))) return "Email or password is incorrect.";
-  await createSession(res, admin._id, "password", ip, secure);
-  return null;
-}
-
-/** Step 2. Upgrades the password-stage session to a full one. */
-export async function totpStep(req: Request, res: Response, code: string, secure: boolean): Promise<string | null> {
-  const s = await sessionFrom(req);
-  if (!s || s.stage !== "password") return "Your sign-in timed out. Start again.";
-  if (!(await hit(`admin-totp:${s.adminId}`, 8, 15 * 60 * 1000))) return "Too many attempts. Wait 15 minutes.";
-  const admin = await AdminUser.findById(s.adminId).select("+totpSecret").lean();
-  if (!admin?.active) return "Your sign-in timed out. Start again.";
-  const step = verifyTotp(admin.totpSecret, code.trim());
-  // A code can be used once: reject steps at or before the last accepted one.
-  if (step === null || step <= (admin.lastTotpStep ?? 0)) return "That code is wrong or was already used.";
-  const claimed = await AdminUser.updateOne({ _id: admin._id, lastTotpStep: { $lt: step } }, { $set: { lastTotpStep: step, lastLoginAt: new Date() } });
-  if (claimed.modifiedCount !== 1) return "That code is wrong or was already used.";
-
-  await AdminSession.deleteOne({ _id: s._id });
-  await createSession(res, admin._id, "full", req.ip ?? "unknown", secure);
-  await audit(admin._id, "admin.login", {}, req.ip);
+  await AdminUser.updateOne({ _id: admin._id }, { $set: { lastLoginAt: new Date() } });
+  await createSession(res, admin._id, ip, secure);
+  await audit(admin._id, "admin.login", {}, ip);
   return null;
 }
 
@@ -97,7 +76,7 @@ export async function signOut(req: Request, res: Response) {
   clearCookie(res);
 }
 
-/** Requires a full session; POSTs must also carry the session's CSRF token. */
+/** Requires a session; POSTs must also carry the session's CSRF token. */
 export const requireAdmin: RequestHandler = async (req, res, next) => {
   try {
     const s = await sessionFrom(req);
@@ -120,9 +99,16 @@ export async function audit(adminId: Types.ObjectId, action: string, target: { t
   await AdminAudit.create({ adminId, action, targetType: target.type, targetId: target.id, details: target.details, ip });
 }
 
-/** Used by the create-admin script. Returns the TOTP enrolment details to show once. */
+/** Used by the create-admin script. */
 export async function createAdmin(email: string, password: string) {
-  const secret = newTotpSecret();
-  await AdminUser.create({ email, passwordHash: await hashPassword(password), totpSecret: secret });
-  return { secret, url: otpauthUrl(secret, email) };
+  await AdminUser.create({ email, passwordHash: await hashPassword(password) });
+}
+
+/** Used by the create-admin script (--reset-password). Signs that admin out everywhere. */
+export async function setAdminPassword(email: string, password: string) {
+  const admin = await AdminUser.findOne({ email }).lean();
+  if (!admin) return false;
+  await AdminUser.updateOne({ _id: admin._id }, { $set: { passwordHash: await hashPassword(password) } });
+  await AdminSession.deleteMany({ adminId: admin._id });
+  return true;
 }

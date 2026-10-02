@@ -23,12 +23,13 @@ API and background worker for BitMine (see [../docs/TECHNICAL_SPEC.md](../docs/T
    ```
 
 ## Admin panel
-The admin panel is served by the API at `/admin` (sign-in with password + authenticator app).
-Create your admin account once, in your own terminal (the details are printed only once):
+The admin panel is served by the API at `/admin` (email + password; 10 attempts per 15 minutes).
+Create the admin account once, in your own terminal (the password is printed only once):
 ```
-npm run admin:create -- you@example.com
+npm run admin:create                        # admin@bitmine.com
+npm run admin:create -- admin@bitmine.com --reset-password   # new password later
 ```
-Add the printed setup key to an authenticator app, then sign in at `http://localhost:4000/admin/login`.
+Then sign in at `http://localhost:4000/admin/login`.
 
 ## Production
 `npm run build` compiles to `dist/`; `npm run start:api` and `npm run start:worker` run it. The step-by-step server setup (Docker Compose + Caddy for HTTPS) is in [../docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md). With `NODE_ENV=production` the API refuses to start without the email provider configured, because sign-up depends on it.
@@ -71,7 +72,7 @@ The tests start one throwaway MongoDB replica set and give each test file its ow
 | `src/support/service.ts` | Support tickets |
 | `src/routes/public.ts` | FAQs and app config (no sign-in) |
 | `src/config/content.ts` | FAQ and app config seed content |
-| `src/admin/` | Admin panel: sign-in (password + TOTP), withdrawals, users, support, economics, products, content, announcements, audit log |
+| `src/admin/` | Admin panel: sign-in, dashboard, withdrawals, purchases, users, support, economics, products, content, announcements, audit log |
 | `src/config/economics.ts` | Launch numbers and product seeds |
 | `src/models/` | MongoDB models |
 | `src/lib/time.ts` | Timezone and local-midnight helpers |

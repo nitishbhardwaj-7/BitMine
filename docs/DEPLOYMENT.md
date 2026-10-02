@@ -58,7 +58,7 @@ Seed the database and create your admin account (the admin details are printed *
 docker compose -f deploy/docker-compose.yml exec api node dist/scripts/seed.js
 docker compose -f deploy/docker-compose.yml exec api node dist/scripts/create-admin.js you@yourdomain
 ```
-Sign in at `https://api.yourdomain/admin/login` with the password and your authenticator app.
+Sign in at `https://api.yourdomain/admin/login` with that email and password.
 
 ## 5. Connect the vendors
 | Vendor | Setting | Value |
@@ -82,7 +82,7 @@ Sign in at `https://api.yourdomain/admin/login` with the password and your authe
 - **Update after a `git pull`:** `docker compose -f deploy/docker-compose.yml up -d --build` (the API drains in-flight requests, the worker finishes its current job)
 - **Alerts to watch in the worker log:** `ALERT: Speed balance too low` (top up Speed; payouts resume on their own), `needs admin review` (admin → Withdrawals → *needs reconcile*)
 - **Backups:** Atlas M10+ has continuous backups; on M0 take a `mongodump` before changing economics or products
-- **Secrets:** rotate `JWT_ACCESS_SECRET` only if leaked (signs everyone out); the admin password and TOTP are per admin account
+- **Secrets:** rotate `JWT_ACCESS_SECRET` only if leaked (signs everyone out); reset the admin password with `create-admin.js admin@bitmine.com --reset-password`
 
 ## Server that already runs Traefik / Dokploy (the current production server)
 If ports 80/443 already belong to Traefik (Dokploy), do **not** start Caddy. Use `deploy/docker-compose.traefik.yml`: the API joins the `dokploy-network` and Traefik routes `API_DOMAIN` to it with its `letsencrypt` resolver.
