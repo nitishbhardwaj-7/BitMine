@@ -6,11 +6,11 @@
 import { esc, skeleton } from '../ui.js';
 import { icons } from '../icons.js';
 import { state, btcUsd, liveTodayMsat } from '../store.js';
-import { fmtHash, fmtSatsPrecise } from '../format.js';
+import { fmtHash } from '../format.js';
 import { initHeroScrollCollapse } from '../heroCollapse.js';
 import {
   tickerHTML, minerCard, claimTracksHTML, countdownText, featuredNews, newsRow, lessonRow, settlementRows,
-  liveBalanceText, money, moneySub,
+  liveBalanceHtml, liveSmallText, money, moneySub,
 } from './parts.js';
 
 function heroCard() {
@@ -90,13 +90,13 @@ export const screens = {
                   <div class="hero-balance-text" id="heroBalanceText">
                     <span class="hero-greeting hero-stagger-4">Wallet balance</span>
                     <div class="hero-balance-row">
-                      <span class="hero-balance-value" id="heroBalanceValue" data-live="balance" data-act="cycle-unit" style="cursor: pointer;">${s ? liveBalanceText() : '—'}</span>
+                      <span class="hero-balance-value" id="heroBalanceValue" data-live="balance" data-act="cycle-unit" style="cursor: pointer;">${s ? liveBalanceHtml() : '—'}</span>
                       <button class="balance-eye-btn" data-act="toggle-balance" aria-label="Hide or show balance">${icons.eye}</button>
                     </div>
                     <div class="hero-balance-sub" id="heroBalanceSub" style="margin-top: 5px;">
                       <span class="pct-pill glass-light">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m18 15-6-6-6 6"/></svg>
-                        <span data-live="today">${fmtSatsPrecise(liveTodayMsat())}</span>&nbsp;today
+                        <span data-live="today">${liveSmallText(liveTodayMsat())}</span>&nbsp;today
                       </span>
                     </div>
                   </div>

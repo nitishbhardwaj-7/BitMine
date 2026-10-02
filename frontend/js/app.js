@@ -9,10 +9,9 @@ import { auth, post, ApiError } from './api.js';
 import { state, subscribe, refresh, ensure, loadKeyed, bootstrap, reset, startPolling, stopPolling, liveBalanceMsat, liveTodayMsat } from './store.js';
 import { toast, closeSheet, openSheet, sheetOpen, busy, formData, showFieldError } from './ui.js';
 import { icons } from './icons.js';
-import { fmtSatsPrecise } from './format.js';
 import { config } from './config.js';
 import { isNative, platform, pushToken, onPushTap, onBackButton, onResume, exitApp, setStatusBar, signOutPurchases, openUrl } from './native.js';
-import { cycleUnit, toggleBalanceHidden, liveBalanceText, moneySub, countdownText } from './screens/parts.js';
+import { cycleUnit, toggleBalanceHidden, liveBalanceHtml, liveSmallText, moneySub, countdownText } from './screens/parts.js';
 
 import * as authScreens from './screens/auth.js';
 import * as homeScreens from './screens/home.js';
@@ -176,16 +175,16 @@ setInterval(() => {
   if (!state.status) return;
   const c = container();
   if (!c) return;
-  c.querySelectorAll('[data-live="balance"]').forEach((e) => (e.textContent = liveBalanceText()));
+  c.querySelectorAll('[data-live="balance"]').forEach((e) => (e.innerHTML = liveBalanceHtml()));
   c.querySelectorAll('[data-live="balance-sub"]').forEach((e) => (e.textContent = moneySub(liveBalanceMsat())));
-  c.querySelectorAll('[data-live="today"]').forEach((e) => (e.textContent = fmtSatsPrecise(liveTodayMsat())));
+  c.querySelectorAll('[data-live="today"]').forEach((e) => (e.textContent = liveSmallText(liveTodayMsat())));
   c.querySelectorAll('[data-live="countdown"]').forEach((e) => (e.textContent = countdownText()));
   // Midnight passed: claims reset, fetch the new day's status once.
   if (Date.parse(state.status.nextMidnight) <= Date.now() && Date.now() - lastCountdownRefresh > 60_000) {
     lastCountdownRefresh = Date.now();
     refresh('status', 'daily');
   }
-}, 250);
+}, 100);
 
 // ── events ────────────────────────────────────────────────────────────────
 async function runAction(name, el) {
@@ -206,7 +205,7 @@ Object.assign(actions, {
   },
   'cycle-unit'() {
     const u = cycleUnit();
-    toast(`Showing balances in ${u === 'sats' ? 'sats' : u.toUpperCase()}`);
+    toast(`Showing balances in ${u === 'sats' ? 'sats' : u === 'btc' ? 'BTC' : 'USD'}`);
     render({ fresh: false });
   },
   'toggle-balance'() {

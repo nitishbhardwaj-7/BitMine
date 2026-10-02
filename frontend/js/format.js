@@ -22,6 +22,15 @@ export function fmtSatsPrecise(msat) {
   return `${((msat || 0) / 1000).toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} sats`;
 }
 
+/**
+ * BTC for a live counter: the usual 8 decimals plus 4 "micro" digits
+ * (1 msat = 0.00000000001 BTC) that visibly tick with the hashrate.
+ */
+export function fmtBtcParts(msat) {
+  const s = ((msat || 0) / MSAT_PER_BTC).toFixed(12);
+  return { main: s.slice(0, 10), micro: s.slice(10) };
+}
+
 export function fmtBtc(msat, digits = 8) {
   return `${((msat || 0) / MSAT_PER_BTC).toFixed(digits)} BTC`;
 }

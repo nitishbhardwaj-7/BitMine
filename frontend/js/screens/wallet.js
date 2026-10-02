@@ -9,7 +9,7 @@ import { esc, header, skeleton, errorCard, emptyState, toast, openSheet, closeSh
 import { icons } from '../icons.js';
 import { state, refresh, btcUsd } from '../store.js';
 import { fmtSats, fmtUsd, fmtDateTime, sats } from '../format.js';
-import { liveBalanceText, moneySub, unit, money, settlementRows } from './parts.js';
+import { liveBalanceHtml, moneySub, unit, money, settlementRows } from './parts.js';
 
 const WITHDRAW_STATUS = {
   pending: ['warn', 'Waiting for review'],
@@ -65,7 +65,7 @@ function walletScreen() {
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
             </button>
           </div>
-          <div class="wallet-main-amount" data-live="balance">${s ? liveBalanceText() : '—'}</div>
+          <div class="wallet-main-amount" data-live="balance">${s ? liveBalanceHtml() : '—'}</div>
           <div class="wallet-btc-equiv" data-live="balance-sub">${s ? moneySub(s.balance.displayMsat) : ''}</div>
           <div class="action-shortcut-group" style="margin-top: 18px;">
             <div class="action-shortcut-item" data-act="withdraw"><div class="action-circle-btn light">${icons.up}</div><span class="action-shortcut-label light">Withdraw</span></div>

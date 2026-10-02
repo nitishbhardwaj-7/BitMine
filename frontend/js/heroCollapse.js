@@ -107,48 +107,20 @@ export function initHeroScrollCollapse(container) {
     });
   };
 
-  // Forward gestures on the hero to the scroll view (the hero sits above it).
-  const onWheel = (e) => {
-    scrollView.scrollTop += e.deltaY;
+  // Touches and wheel pass through the hero to the scroll view (css/app.css:
+  // the hero is pointer-events: none except its buttons and cards), so the
+  // list scrolls natively with momentum. The prototype moved scrollTop by hand
+  // from touchmove, which fought the browser's own scrolling and stuttered.
+  // While scrolling, the decorative animations (blurred orbs, floating card)
+  // are paused so each frame only moves a few compositor layers.
+  let scrollIdle;
+  const onScroll = () => {
+    if (!hero.classList.contains('is-scrolling')) hero.classList.add('is-scrolling');
+    clearTimeout(scrollIdle);
+    scrollIdle = setTimeout(() => hero.classList.remove('is-scrolling'), 160);
     requestUpdate();
   };
-  let touchStartY = 0;
-  let initialScrollTop = 0;
-  const onTouchStart = (e) => {
-    touchStartY = e.touches[0].clientY;
-    initialScrollTop = scrollView.scrollTop;
-  };
-  const onTouchMove = (e) => {
-    scrollView.scrollTop = initialScrollTop + (touchStartY - e.touches[0].clientY);
-    requestUpdate();
-  };
-  let dragging = false;
-  let dragStartY = 0;
-  let dragStartScroll = 0;
-  const onMouseDown = (e) => {
-    if (e.target.closest('button, .action-shortcut-item, [data-go], [data-act]')) return;
-    dragging = true;
-    dragStartY = e.clientY;
-    dragStartScroll = scrollView.scrollTop;
-    hero.style.cursor = 'grabbing';
-  };
-  const onMouseMove = (e) => {
-    if (!dragging) return;
-    scrollView.scrollTop = dragStartScroll + (dragStartY - e.clientY);
-    requestUpdate();
-  };
-  const onMouseUp = () => {
-    dragging = false;
-    hero.style.cursor = '';
-  };
-
-  scrollView.addEventListener('scroll', requestUpdate, { passive: true });
-  hero.addEventListener('wheel', onWheel, { passive: true });
-  hero.addEventListener('touchstart', onTouchStart, { passive: true });
-  hero.addEventListener('touchmove', onTouchMove, { passive: true });
-  hero.addEventListener('mousedown', onMouseDown);
-  window.addEventListener('mousemove', onMouseMove);
-  window.addEventListener('mouseup', onMouseUp);
+  scrollView.addEventListener('scroll', onScroll, { passive: true });
 
   applyCollapse(scrollView.scrollTop);
 
@@ -161,8 +133,7 @@ export function initHeroScrollCollapse(container) {
 
   cleanup = () => {
     clearTimeout(enteredTimer);
-    window.removeEventListener('mousemove', onMouseMove);
-    window.removeEventListener('mouseup', onMouseUp);
+    clearTimeout(scrollIdle);
     cleanup = null;
   };
 }

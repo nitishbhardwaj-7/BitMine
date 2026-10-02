@@ -6,19 +6,21 @@
 import { esc, emptyState } from '../ui.js';
 import { icons } from '../icons.js';
 import { state, btcUsd, liveBalanceMsat } from '../store.js';
-import { fmtSats, fmtSatsPrecise, fmtUsd, fmtBtc, fmtHash, fmtPrice, fmtPct, fmtDay, fmtCountdown, timeAgo } from '../format.js';
+import { fmtSats, fmtSatsPrecise, fmtUsd, fmtBtc, fmtBtcParts, fmtHash, fmtPrice, fmtPct, fmtDay, fmtCountdown, timeAgo } from '../format.js';
 
-// ── balance units (sats / USD / BTC), remembered on the device ────────────
+// ── balance units (BTC / sats / USD), remembered on the device ────────────
+// BTC is the default: it's what people recognise, and the live counter shows
+// the extra digits ticking. Tapping the balance switches to sats, then USD.
 const UNIT_KEY = 'bitmine.unit';
 export function unit() {
   try {
-    return localStorage.getItem(UNIT_KEY) || 'sats';
+    return localStorage.getItem(UNIT_KEY) || 'btc';
   } catch {
-    return 'sats';
+    return 'btc';
   }
 }
 export function cycleUnit() {
-  const next = { sats: 'usd', usd: 'btc', btc: 'sats' }[unit()] ?? 'sats';
+  const next = { btc: 'sats', sats: 'usd', usd: 'btc' }[unit()] ?? 'btc';
   try {
     localStorage.setItem(UNIT_KEY, next);
   } catch {
@@ -33,7 +35,7 @@ export function money(msat, u = unit()) {
 }
 /** The "other" representation shown under a balance. */
 export function moneySub(msat, u = unit()) {
-  return u === 'sats' ? `≈ ${fmtUsd(msat, btcUsd())}` : `≈ ${fmtSats(msat)}`;
+  return u === 'usd' ? `≈ ${fmtSats(msat)}` : `≈ ${fmtUsd(msat, btcUsd())}`;
 }
 
 // ── balance privacy (eye toggle), remembered on the device ────────────────
@@ -54,12 +56,35 @@ export function toggleBalanceHidden() {
   }
   return v;
 }
-/** Live balance: sats with 3 decimals so mining visibly ticks (≈1 msat/s per 1 TH/s). */
+/** Live balance as text (used where markup isn't possible). */
 export const liveBalanceText = () => {
   if (balanceHidden()) return '••••••••';
   const msat = liveBalanceMsat();
-  return unit() === 'sats' ? fmtSatsPrecise(msat) : unit() === 'btc' ? fmtBtc(msat, 11) : money(msat);
+  return unit() === 'sats' ? fmtSatsPrecise(msat) : unit() === 'btc' ? fmtBtc(msat, 12) : money(msat);
 };
+
+/**
+ * Live balance as markup: in BTC, 8 normal decimals plus 4 smaller "micro"
+ * digits that tick in real time with the hashrate (1 msat = 0.00000000001 BTC).
+ */
+export function liveBalanceHtml() {
+  if (balanceHidden()) return '••••••••';
+  const msat = liveBalanceMsat();
+  const u = unit();
+  if (u === 'btc') {
+    const { main, micro } = fmtBtcParts(msat);
+    return `<span class="bal-main">${main}</span><span class="bal-micro">${micro}</span><span class="bal-unit">BTC</span>`;
+  }
+  return `<span class="bal-main">${u === 'sats' ? fmtSatsPrecise(msat) : money(msat)}</span>`;
+}
+
+/** A small live amount (e.g. "today") in the chosen unit. */
+export function liveSmallText(msat) {
+  const u = unit();
+  if (u === 'btc') return fmtBtc(msat, 10);
+  if (u === 'usd') return fmtUsd(msat, btcUsd());
+  return fmtSatsPrecise(msat);
+}
 
 // ── coins ─────────────────────────────────────────────────────────────────
 const COINS = {

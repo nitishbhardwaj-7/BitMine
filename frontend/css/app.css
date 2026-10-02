@@ -248,3 +248,32 @@ textarea.bm-input { min-height: 110px; resize: vertical; line-height: 1.45; }
    fill-mode "both" would otherwise override the scroll-collapse's inline
    opacity/transform and the balance card would never fade out. */
 .home-hero.entered [class*="hero-stagger-"] { animation: none !important; }
+
+/* ==========================================================================
+   Home hero: smooth scrolling + live BTC counter (see js/heroCollapse.js)
+   ========================================================================== */
+/* The hero overlays the scroll view. Input passes through it so the list scrolls
+   natively; only the interactive parts catch taps. */
+.home-hero.collapsing-hero { pointer-events: none !important; }
+.home-hero.collapsing-hero .hero-top-bar,
+.home-hero.collapsing-hero .hero-balance-wrapper,
+.home-hero.collapsing-hero .action-shortcut-group,
+.home-hero.collapsing-hero .security-alert-card { pointer-events: auto; }
+/* While the list is moving, pause the decorations so a frame only moves a few layers. */
+.home-hero.is-scrolling .hero-liquid-orb-1,
+.home-hero.is-scrolling .hero-liquid-orb-2,
+.home-hero.is-scrolling .hero-liquid-orb-3,
+.home-hero.is-scrolling .hero-liquid-orb-4,
+.home-hero.is-scrolling .hero-balance-glass-card,
+.home-hero.is-scrolling .glass-reflection-sweep { animation-play-state: paused !important; }
+/* On phones, blurring the backdrop under a card that moves every frame is the single most
+   expensive effect in the app; a slightly stronger tint keeps the glass look. */
+html.device .hero-balance-glass-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: rgba(255, 255, 255, 0.1) !important; }
+html.device .home-hero.navbar-docked { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+html.device .hero-liquid-orb-1, html.device .hero-liquid-orb-2,
+html.device .hero-liquid-orb-3, html.device .hero-liquid-orb-4 { filter: blur(18px); }
+
+/* Live counter: fixed-width digits so the number doesn't jitter; micro digits smaller and dimmer. */
+.hero-balance-value, .wallet-main-amount { font-variant-numeric: tabular-nums; }
+.bal-micro { font-size: 0.55em; font-weight: 700; opacity: 0.55; letter-spacing: 0; }
+.bal-unit { font-size: 0.48em; font-weight: 700; opacity: 0.8; margin-left: 6px; letter-spacing: 0; }
