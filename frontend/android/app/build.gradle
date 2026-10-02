@@ -7,9 +7,10 @@ android {
         applicationId "com.bitmine.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Bump both for every store upload. versionName must match VITE_APP_VERSION.
-        versionCode 1
-        versionName "1.0.0"
+        // CI sets BITMINE_VERSION_CODE (the run number) and BITMINE_VERSION_NAME (VITE_APP_VERSION).
+        // Local builds use these defaults; every Play upload needs a higher versionCode.
+        versionCode((System.getenv("BITMINE_VERSION_CODE") ?: "1").toInteger())
+        versionName(System.getenv("BITMINE_VERSION_NAME") ?: "1.0.0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -18,8 +19,11 @@ android {
         }
     }
     // Release signing: create android/keystore.properties (git-ignored) with
-    //   storeFile=../bitmine-release.jks  storePassword=…  keyAlias=bitmine  keyPassword=…
-    // See docs/MOBILE_SETUP.md. Without it, release builds are unsigned.
+    //   storeFile=bitmine-release.jks  storePassword=…  keyAlias=bitmine  keyPassword=…
+    // See docs/MOBILE_SETUP.md. Without it, release builds are unsigned, unless
+    // BITMINE_DEBUG_SIGN_RELEASE=true (CI without the signing secrets): then the
+    // release build is signed with the debug key — installable for testing, but
+    // never accepted by Google Play.
     def keystoreProps = new Properties()
     def keystoreFile = rootProject.file('keystore.properties')
     if (keystoreFile.exists()) {
@@ -41,6 +45,8 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             if (keystoreFile.exists()) {
                 signingConfig signingConfigs.release
+            } else if (System.getenv("BITMINE_DEBUG_SIGN_RELEASE") == "true") {
+                signingConfig signingConfigs.debug
             }
         }
     }

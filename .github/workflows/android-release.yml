@@ -1,0 +1,148 @@
+# Builds the Android app: a release APK (install on a phone to test) and an AAB (Google Play).
+#
+# Runs on every push to main that touches the app, on tags v*, and by hand (Actions → Run workflow).
+# Artifacts: Actions → the run → "bitmine-android-…" (APK + AAB). Tags v* also publish a GitHub Release.
+#
+# Signing (repo → Settings → Secrets and variables → Actions → Secrets):
+#   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+#   With them: signed with the BitMine release key (installable, Play-ready).
+#   Without them: the APK is signed with a throwaway debug key (installable for testing only).
+#
+# App settings (Settings → Secrets and variables → Actions → Variables; all optional):
+#   VITE_API_URL (default https://bitmine.webflowby.online), VITE_APP_VERSION (default 1.0.0),
+#   VITE_REVENUECAT_GOOGLE_KEY, VITE_REVENUECAT_APPLE_KEY, VITE_GOOGLE_WEB_CLIENT_ID
+# Optional secret: GOOGLE_SERVICES_JSON (contents of google-services.json, for push + Google sign-in).
+
+name: Android release build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/android-release.yml"
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write # only used to publish a GitHub Release for v* tags
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      VITE_API_URL: ${{ vars.VITE_API_URL || 'https://bitmine.webflowby.online' }}
+      VITE_APP_VERSION: ${{ vars.VITE_APP_VERSION || '1.0.0' }}
+      VITE_REVENUECAT_GOOGLE_KEY: ${{ vars.VITE_REVENUECAT_GOOGLE_KEY }}
+      VITE_REVENUECAT_APPLE_KEY: ${{ vars.VITE_REVENUECAT_APPLE_KEY }}
+      VITE_GOOGLE_WEB_CLIENT_ID: ${{ vars.VITE_GOOGLE_WEB_CLIENT_ID }}
+      VITE_DEV_SHORTCUTS: "false"
+      BITMINE_VERSION_CODE: ${{ github.run_number }}
+      BITMINE_VERSION_NAME: ${{ vars.VITE_APP_VERSION || '1.0.0' }}
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Release settings check
+        # Store-release tags must pass every check; other builds only warn.
+        run: node scripts/release-check.mjs
+        env:
+          RELEASE_CHECK_STRICT: ${{ startsWith(github.ref, 'refs/tags/v') && 'true' || 'false' }}
+
+      - name: Build the web app
+        run: npx vite build
+
+      - name: Sync into the Android project
+        run: npx cap sync android
+
+      - name: Firebase config (optional)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        if: env.GOOGLE_SERVICES_JSON != ''
+        run: printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+
+      - name: Release signing key
+        if: env.HAS_KEYSTORE == 'true'
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > android/bitmine-release.jks
+          {
+            echo "storeFile=bitmine-release.jks"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > android/keystore.properties
+
+      - name: No signing key — use the debug key (test builds only)
+        if: env.HAS_KEYSTORE != 'true'
+        run: |
+          echo "BITMINE_DEBUG_SIGN_RELEASE=true" >> "$GITHUB_ENV"
+          echo "::warning title=Debug-signed::ANDROID_KEYSTORE_* secrets are not set: the APK is signed with a debug key (fine for testing, not for Google Play)."
+
+      - name: Build release APK and AAB
+        working-directory: frontend/android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease bundleRelease
+
+      - name: Collect files
+        id: files
+        run: |
+          mkdir -p ../out
+          name="bitmine-${VITE_APP_VERSION}-${BITMINE_VERSION_CODE}"
+          cp android/app/build/outputs/apk/release/app-release.apk "../out/${name}.apk"
+          cp android/app/build/outputs/bundle/release/app-release.aab "../out/${name}.aab"
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+          {
+            echo "### BitMine ${VITE_APP_VERSION} (build ${BITMINE_VERSION_CODE})"
+            echo "- API: ${VITE_API_URL}"
+            echo "- Signed with: $([ "$HAS_KEYSTORE" = true ] && echo 'BitMine release key' || echo 'debug key (testing only)')"
+            echo "- Download: the **${name}** artifact below (APK to install, AAB for Google Play)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove signing files
+        if: always()
+        run: rm -f android/keystore.properties android/bitmine-release.jks android/app/google-services.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bitmine-android-${{ steps.files.outputs.name }}
+          path: out/*
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: GitHub Release (tags v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/*
+          generate_release_notes: true

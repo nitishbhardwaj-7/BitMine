@@ -76,13 +76,22 @@ npx cap open ios       # Xcode → Run (Mac only)
    ```
    Then create `frontend/android/keystore.properties` (git-ignored):
    ```
-   storeFile=../bitmine-release.jks
+   storeFile=bitmine-release.jks
    storePassword=…
    keyAlias=bitmine
    keyPassword=…
    ```
 4. Bump `versionCode` and `versionName` in `android/app/build.gradle` (versionName = `VITE_APP_VERSION`).
 5. `npm run android:release`: this refuses to continue if a development setting is still in place, then builds and syncs. Open Android Studio (`npx cap open android`) → Build → Generate Signed Bundle (AAB) for Play, or run `gradlew bundleRelease` in `android/`.
+
+## Builds on GitHub (Actions)
+`.github/workflows/android-release.yml` builds a **release APK** (install on a phone) and an **AAB** (Google Play) on every push to `main` that changes `frontend/`, on tags `v*`, and from Actions → *Android release build* → *Run workflow*. Download them from the run page (artifact `bitmine-android-…`). A tag such as `v1.0.0` also creates a GitHub Release with both files.
+
+- **Signing secrets** (Settings → Secrets and variables → Actions → *Secrets*): `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`. Values are in `frontend/android/github-secrets.txt` on the PC that created the key (git-ignored; delete it after adding them). Without these the APK is signed with a debug key: installable for testing, rejected by Play.
+- **Variables** (same page, *Variables* tab, optional): `VITE_API_URL` (default `https://bitmine.webflowby.online`), `VITE_APP_VERSION` (default `1.0.0`), `VITE_REVENUECAT_GOOGLE_KEY`, `VITE_REVENUECAT_APPLE_KEY`, `VITE_GOOGLE_WEB_CLIENT_ID`. Optional secret `GOOGLE_SERVICES_JSON`.
+- `versionCode` = the workflow run number, so every build can be uploaded to Play; `versionName` = `VITE_APP_VERSION`.
+- Normal builds only *warn* about unfinished store settings (test AdMob ID, missing RevenueCat key); `v*` tags fail until they are fixed.
+- **Back up the release key** (`frontend/android/bitmine-release.jks` + `keystore.properties`) somewhere safe outside this PC. Losing it means the Play listing can never be updated.
 
 ## How the native parts work
 | Feature | Plugin | What the server does |
