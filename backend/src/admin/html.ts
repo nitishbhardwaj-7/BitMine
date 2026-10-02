@@ -77,19 +77,24 @@ body{margin:0;background:var(--page);color:var(--ink);font:14px/1.45 'Plus Jakar
 a{color:var(--purple);text-decoration:none}a:hover{text-decoration:underline}
 h1{font-size:22px;font-weight:800;letter-spacing:-.3px;margin:0}h2{font-size:15px;font-weight:800;margin:0 0 12px}
 .side{width:232px;flex-shrink:0;background:var(--hero);color:#fff;padding:22px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:18px}
-.brand{display:flex;align-items:center;gap:10px;padding:0 8px;font-weight:800;font-size:17px}.brand b{width:34px;height:34px;border-radius:11px;background:var(--grad);display:grid;place-items:center;font-size:17px;box-shadow:0 0 18px rgba(139,77,255,.45)}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px;font-weight:800;font-size:17px}.brand img{width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 3px 10px rgba(109,53,245,.6))}
 .brand small{display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,.55);letter-spacing:.3px}
 .nav{display:flex;flex-direction:column;gap:3px}.nav a{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:12px;color:rgba(255,255,255,.72);font-weight:600;font-size:13.5px}.nav a svg{width:17px;height:17px;flex-shrink:0}
 .nav a:hover{background:rgba(255,255,255,.07);color:#fff;text-decoration:none}.nav a.on{background:rgba(255,255,255,.12);color:#fff;box-shadow:inset 0 1px 1px rgba(255,255,255,.18)}
 .side form{margin-top:auto}.side button{width:100%;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.14);padding:9px;border-radius:12px;font:inherit;font-weight:700;cursor:pointer}
 .main{flex:1;min-width:0;display:flex;flex-direction:column}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 28px 0}.top .sub{color:var(--muted);font-size:12.5px;font-weight:600}
-main{padding:18px 28px 60px;display:grid;gap:16px;max-width:1280px;width:100%}
+main{padding:18px 28px 60px;display:grid;gap:16px;width:100%}
+@media(min-width:1600px){.top{padding:22px 36px 0}main{padding:22px 36px 70px;gap:20px}}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);overflow-x:auto}
 .hero{background:var(--hero);color:#fff;border-radius:24px;padding:22px;position:relative;overflow:hidden}
 .hero:before{content:"";position:absolute;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(139,77,255,.45),transparent 65%);top:-140px;right:-60px;pointer-events:none}
 .hero .grid{position:relative}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.grid.cols-8{grid-template-columns:repeat(8,1fr)}
+@media(max-width:1500px){.grid.cols-8{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:1100px){.grid,.grid.cols-8{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.grid,.grid.cols-8{grid-template-columns:1fr}}
 .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow)}
 .kpi small{display:block;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}.kpi strong{display:block;font-size:22px;font-weight:800;letter-spacing:-.4px;margin-top:4px;font-variant-numeric:tabular-nums}.kpi .note{font-size:12px;color:var(--muted);margin-top:2px;text-transform:none;letter-spacing:0;font-weight:600}
 .kpi.glass{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:#fff;box-shadow:inset 0 1px 1px rgba(255,255,255,.14)}.kpi.glass small,.kpi.glass .note{color:rgba(255,255,255,.65)}
@@ -119,11 +124,11 @@ button.btn.good{background:var(--good);box-shadow:none}button.btn.bad{background
 export function layout(opts: { title: string; path: string; csrf?: string; flash?: { kind: "ok" | "err"; text: string } | null; body: Html; subtitle?: string }) {
   const onPath = (href: string) => (href === "/admin" ? opts.path === "/admin" : opts.path.startsWith(href));
   return html`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${opts.title} · BitMine Admin</title><meta name="robots" content="noindex"><meta name="theme-color" content="#0B0A18">
+<title>${opts.title} · BitMine Admin</title><meta name="robots" content="noindex"><meta name="theme-color" content="#0B0A18"><link rel="icon" type="image/png" href="/admin/assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
 <style>${raw(CSS)}</style></head><body>
 ${opts.csrf
-  ? html`<aside class="side"><div class="brand"><b>₿</b><div>BitMine<small>ADMIN</small></div></div>
+  ? html`<aside class="side"><div class="brand"><img src="/admin/assets/logo.png" alt=""><div>BitMine<small>ADMIN</small></div></div>
 <nav class="nav">${NAV.map(([href, label, d]) => html`<a href="${href}" class="${onPath(href) ? "on" : ""}">${icon(d)}${label}</a>`)}</nav>
 <form method="post" action="/admin/logout"><input type="hidden" name="_csrf" value="${opts.csrf}"><button>Sign out</button></form></aside>`
   : ""}
@@ -137,7 +142,7 @@ const LOGIN_CSS = `
 .login-hero .orb{position:absolute;border-radius:50%;filter:blur(40px);opacity:.75;pointer-events:none}
 .login-hero .o1{width:420px;height:420px;background:rgba(109,53,245,.55);top:-120px;right:-120px}.login-hero .o2{width:320px;height:320px;background:rgba(37,16,92,.9);bottom:-100px;left:-60px}.login-hero .o3{width:200px;height:200px;background:rgba(160,102,255,.35);top:40%;left:35%}
 .login-hero>*{position:relative}
-.login-hero .brand{font-size:20px}.login-hero .brand b{width:44px;height:44px;border-radius:14px;font-size:22px}
+.login-hero .brand{font-size:20px}.login-hero .brand img{width:46px;height:46px}
 .login-hero h1{font-size:40px;line-height:1.1;letter-spacing:-.8px;margin:0 0 14px;max-width:460px}.login-hero p{font-size:16px;color:rgba(255,255,255,.72);margin:0;max-width:440px;line-height:1.5}
 .login-hero ul{list-style:none;padding:0;margin:28px 0 0;display:grid;gap:12px;max-width:440px}.login-hero li{display:flex;gap:12px;align-items:center;font-weight:600;color:rgba(255,255,255,.85)}
 .login-hero li i{width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.1);display:grid;place-items:center;flex-shrink:0}.login-hero li svg{width:16px;height:16px}
@@ -155,12 +160,12 @@ const LOGIN_CSS = `
 export function loginLayout(opts: { error?: string | null; email?: string }) {
   const feat = (d: string, text: string) => html`<li><i>${icon(d)}</i>${text}</li>`;
   return html`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sign in · BitMine Admin</title><meta name="robots" content="noindex"><meta name="theme-color" content="#0B0A18">
+<title>Sign in · BitMine Admin</title><meta name="robots" content="noindex"><meta name="theme-color" content="#0B0A18"><link rel="icon" type="image/png" href="/admin/assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
 <style>${raw(CSS)}${raw(LOGIN_CSS)}</style></head><body>
 <div class="login">
   <section class="login-hero"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span>
-    <div class="brand"><b>₿</b><div>BitMine<small>ADMIN</small></div></div>
+    <div class="brand"><img src="/admin/assets/logo.png" alt=""><div>BitMine<small>ADMIN</small></div></div>
     <div><h1>Run your mining business from one place.</h1><p>Revenue, purchases, users and Lightning payouts, with every action recorded.</p>
       <ul>${feat("M12 19V5m0 0-6 6m6-6 6 6", "Approve withdrawals sent from your Speed account")}${feat("M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z", "Day-by-day revenue, ads and payouts")}${feat("M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m14-10a4 4 0 1 0-8 0 4 4 0 0 0 8 0z", "Every user, purchase and support request")}</ul></div>
     <div class="foot">Private area · sign-ins are limited and logged</div>

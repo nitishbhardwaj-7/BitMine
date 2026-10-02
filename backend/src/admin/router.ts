@@ -1,4 +1,5 @@
 import express, { Router, type Request, type Response } from "express";
+import { fileURLToPath } from "node:url";
 import { AppError } from "../lib/errors.js";
 import { SupportTicket, User } from "../models/index.js";
 import type { SpeedClient } from "../wallet/speed.js";
@@ -70,6 +71,8 @@ export const param = (req: Request, name: string) => String(req.params[name] ?? 
 
 export function adminRouter(opts: AdminOptions) {
   const r = Router();
+  // The app's logo, used by the sidebar, login page and favicon (works from src/ and dist/).
+  r.use("/assets", express.static(fileURLToPath(new URL("../../assets", import.meta.url)), { maxAge: "7d", index: false, fallthrough: false }));
   r.use(express.urlencoded({ extended: false, limit: "50kb" }));
   r.use((_req, res, next) => {
     res.setHeader("Cache-Control", "no-store");
@@ -156,7 +159,7 @@ export function adminRouter(opts: AdminOptions) {
         ${kpi("Ad revenue · 30 days (est.)", usd(ads30), `${num(sum((d) => d.adViews))} verified videos × eCPM ${usd(ecpm)}`, "glass")}
         ${kpi("Paid out · 30 days", usd(paid30), `${num(paidSats30)} sats${btc ? ` at BTC ${usd(btc, 0)}` : ""}`, "glass")}
       </div></div>
-      <div class="grid">
+      <div class="grid cols-8">
         ${kpi("Today (UTC)", usd(todayNet), `${usd(today.iapUsd)} purchases · ${usd(today.adsUsd)} ads · ${num(today.paidSats)} sats out`)}
         ${kpi("Waiting for review", num(s.pendingReview), "withdrawals to approve", s.pendingReview ? "bad" : "")}
         ${kpi("Owed in open withdrawals", `${num(s.pendingSats)} sats`, usd(money(s.pendingSats)))}
