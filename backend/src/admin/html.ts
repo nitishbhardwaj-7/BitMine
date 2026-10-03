@@ -124,11 +124,11 @@ button.btn.good{background:var(--good);box-shadow:none}button.btn.bad{background
 export function layout(opts: { title: string; path: string; csrf?: string; flash?: { kind: "ok" | "err"; text: string } | null; body: Html; subtitle?: string }) {
   const onPath = (href: string) => (href === "/admin" ? opts.path === "/admin" : opts.path.startsWith(href));
   return html`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${opts.title} · BitMine Admin</title><meta name="robots" content="noindex"><meta name="theme-color" content="#0B0A18"><link rel="icon" type="image/png" href="/admin/assets/logo.png">
+<title>${opts.title} · BitMine Admin</title><meta name="robots" content="noindex"><meta name="theme-color" content="#0B0A18"><link rel="icon" type="image/png" href="/admin/assets/logo.png?v=2">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
 <style>${raw(CSS)}</style></head><body>
 ${opts.csrf
-  ? html`<aside class="side"><div class="brand"><img src="/admin/assets/logo.png" alt=""><div>BitMine<small>ADMIN</small></div></div>
+  ? html`<aside class="side"><div class="brand"><img src="/admin/assets/logo.png?v=2" alt=""><div>BitMine<small>ADMIN</small></div></div>
 <nav class="nav">${NAV.map(([href, label, d]) => html`<a href="${href}" class="${onPath(href) ? "on" : ""}">${icon(d)}${label}</a>`)}</nav>
 <form method="post" action="/admin/logout"><input type="hidden" name="_csrf" value="${opts.csrf}"><button>Sign out</button></form></aside>`
   : ""}
@@ -160,12 +160,12 @@ const LOGIN_CSS = `
 export function loginLayout(opts: { error?: string | null; email?: string }) {
   const feat = (d: string, text: string) => html`<li><i>${icon(d)}</i>${text}</li>`;
   return html`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sign in · BitMine Admin</title><meta name="robots" content="noindex"><meta name="theme-color" content="#0B0A18"><link rel="icon" type="image/png" href="/admin/assets/logo.png">
+<title>Sign in · BitMine Admin</title><meta name="robots" content="noindex"><meta name="theme-color" content="#0B0A18"><link rel="icon" type="image/png" href="/admin/assets/logo.png?v=2">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
 <style>${raw(CSS)}${raw(LOGIN_CSS)}</style></head><body>
 <div class="login">
   <section class="login-hero"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span>
-    <div class="brand"><img src="/admin/assets/logo.png" alt=""><div>BitMine<small>ADMIN</small></div></div>
+    <div class="brand"><img src="/admin/assets/logo.png?v=2" alt=""><div>BitMine<small>ADMIN</small></div></div>
     <div><h1>Run your mining business from one place.</h1><p>Revenue, purchases, users and Lightning payouts, with every action recorded.</p>
       <ul>${feat("M12 19V5m0 0-6 6m6-6 6 6", "Approve withdrawals sent from your Speed account")}${feat("M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z", "Day-by-day revenue, ads and payouts")}${feat("M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m14-10a4 4 0 1 0-8 0 4 4 0 0 0 8 0z", "Every user, purchase and support request")}</ul></div>
     <div class="foot">Private area · sign-ins are limited and logged</div>
