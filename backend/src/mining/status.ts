@@ -9,6 +9,7 @@ import { localDate, nextLocalMidnight } from "../lib/time.js";
 import { getGrowth, type GrowthSettings } from "../settings/growth.js";
 import { BOOST_TRACK, activeBoostUntil, boostGhFor } from "./boost.js";
 import { streakView } from "./streak.js";
+import { gamesView } from "../games/service.js";
 import { getEconomics, getRateSchedule } from "../settings/economics.js";
 import { ensureBalance } from "../wallet/balances.js";
 import { loadUserTimezone } from "../users/timezone.js";
@@ -67,7 +68,7 @@ export async function getMiningStatus(userId: Types.ObjectId, now = Date.now()) 
     if (!active) continue;
     if (m.source === "paid" || m.source === "admin_grant") ghBySource.paid += m.gh;
     else if (m.source === "claim") ghBySource.claim += m.gh;
-    else if (m.source === "boost" || m.source === "streak") ghBySource.bonus += m.gh;
+    else if (m.source === "boost" || m.source === "streak" || m.source === "game") ghBySource.bonus += m.gh;
     else ghBySource.super += m.gh;
   }
 
@@ -125,6 +126,7 @@ export async function getMiningStatus(userId: Types.ObjectId, now = Date.now()) 
     perks: { paidSkipStartAds: growth.paidSkipStartAds && Boolean(settings.dailyStartRequired) && (settings.startAds ?? 0) > 0 },
     streak: streakView(user?.streak, localDate(now, tz), growth),
     boost,
+    games: await gamesView(session),
     offer: await starterOffer(userId, user?.createdAt, growth, now),
     claims: { gh: settings.claimGh, used: counts("regular"), cap: settings.claimsPerDay },
     superTiers,

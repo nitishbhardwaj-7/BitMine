@@ -415,3 +415,58 @@ html.device .bubble, html.device .faq-item p, html.device .referral-code-text { 
 .perk-row { padding: 12px; border-radius: var(--radius-md); background: #FAF8FE; border: 1px solid var(--color-lavender-border); }
 .btn-block svg { width: 16px; height: 16px; flex-shrink: 0; }
 .compare-card .btn-block, .stack > .btn-block { display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* Games: Home tiles, round panels, Block Miner, Hash Match (js/screens/games.js) */
+.game-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.game-tile {
+  display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: var(--radius-lg, 20px); color: #fff; cursor: pointer;
+  background: linear-gradient(145deg, #1B1340 0%, #5B2BD9 100%); box-shadow: 0 10px 22px rgba(30, 16, 80, 0.22); min-width: 0;
+}
+.game-tile.match { background: linear-gradient(145deg, #0B3B4F 0%, #0E9F8E 100%); }
+.game-tile h4 { font-size: 15px; font-weight: 800; color: #fff; margin-top: 8px; }
+.game-tile p { font-size: 11.5px; color: rgba(255, 255, 255, 0.82); line-height: 1.35; flex: 1; }
+.game-tile-reward { display: inline-flex; align-items: center; gap: 5px; align-self: flex-start; margin-top: 8px; font-size: 11px; font-weight: 800; color: #2A1A00; background: #FFD166; border-radius: var(--radius-pill); padding: 4px 10px; }
+.game-tile-reward svg { width: 12px; height: 12px; }
+.game-tile-art { height: 56px; border-radius: 12px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.18); display: flex; align-items: center; justify-content: center; padding: 0 12px; }
+.art-bar { position: relative; width: 100%; height: 10px; border-radius: 99px; background: rgba(255, 255, 255, 0.22); }
+.art-zone { position: absolute; left: 52%; width: 26%; top: 0; bottom: 0; border-radius: 99px; background: #FFD166; }
+.art-marker { position: absolute; left: 60%; top: -6px; width: 6px; height: 22px; border-radius: 3px; background: #fff; }
+.art-cards { display: flex; gap: 6px; }
+.art-cards span { width: 26px; height: 34px; border-radius: 7px; background: #F7931A; color: #fff; font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center; }
+.art-cards span.back { background: rgba(255, 255, 255, 0.28); }
+
+.game-stage { max-width: 520px; width: 100%; margin: 0 auto; }
+.game-panel { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg, 20px); padding: 24px 18px; box-shadow: var(--shadow-card); }
+.game-panel-icon { width: 56px; height: 56px; border-radius: 18px; display: flex; align-items: center; justify-content: center; background: var(--color-soft-lavender); color: var(--color-primary-purple); }
+.game-panel-icon svg { width: 26px; height: 26px; }
+.game-panel.win .game-panel-icon { background: #E7F8EF; color: var(--color-success); }
+.game-panel.lose .game-panel-icon { background: #FFF1E0; color: #C2410C; }
+.game-panel h3 { font-size: 19px; font-weight: 800; color: var(--text-primary); }
+.game-panel-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; width: 100%; }
+.game-panel-text strong { color: var(--text-primary); }
+.game-panel .btn-block { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.game-rules { text-align: left; margin: 0 auto 10px; padding-left: 20px; max-width: 320px; display: flex; flex-direction: column; gap: 4px; }
+.game-reward-line { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.game-reward-line svg { width: 14px; height: 14px; color: var(--color-primary-purple); }
+.game-hud { display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.game-hud span:last-child { color: var(--color-primary-purple); }
+
+.block-game, .match-game { display: flex; flex-direction: column; gap: 16px; background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg, 20px); padding: 18px; box-shadow: var(--shadow-card); user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.block-cube { display: flex; justify-content: center; gap: 10px; }
+.block-cube span { width: 44px; height: 44px; border-radius: 12px; background: var(--bg-card-secondary); border: 1px solid var(--border-subtle); transition: background 0.2s, transform 0.2s; }
+.block-cube span.on { background: linear-gradient(145deg, #6D35F5, #B794F6); border-color: transparent; transform: scale(1.08); }
+.block-bar { position: relative; height: 54px; border-radius: 16px; background: #14102B; overflow: hidden; cursor: pointer; }
+.block-zone { position: absolute; top: 0; bottom: 0; background: linear-gradient(180deg, #FFD166, #F59E0B); box-shadow: 0 0 18px rgba(255, 209, 102, 0.7); }
+.block-marker { position: absolute; top: 4px; bottom: 4px; left: 0; width: 8px; border-radius: 4px; background: #fff; box-shadow: 0 0 10px rgba(255, 255, 255, 0.9); will-change: transform; }
+.block-bar.hit { box-shadow: 0 0 0 3px var(--color-success); }
+.block-bar.miss { box-shadow: 0 0 0 3px #EF4444; }
+.block-tap { padding: 18px !important; font-size: 18px !important; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+.match-timer { height: 8px; border-radius: 99px; background: var(--bg-card-secondary); overflow: hidden; }
+.match-timer > div { height: 100%; width: 100%; border-radius: 99px; background: linear-gradient(90deg, #6D35F5, #B794F6); }
+.match-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.match-card { aspect-ratio: 3 / 4; border: 0; padding: 0; border-radius: 12px; cursor: pointer; background: linear-gradient(145deg, #2A1E66, #5B2BD9); box-shadow: 0 4px 10px rgba(30, 16, 80, 0.2); display: flex; align-items: center; justify-content: center; }
+.match-face { width: 62%; aspect-ratio: 1; border-radius: 50%; display: none; align-items: center; justify-content: center; color: #fff; font-size: clamp(16px, 5vw, 26px); font-weight: 800; }
+.match-card.open { background: #fff; box-shadow: inset 0 0 0 2px var(--color-lavender-border); }
+.match-card.open .match-face { display: flex; }
+.match-card.matched { box-shadow: inset 0 0 0 2px var(--color-success); opacity: 0.75; }

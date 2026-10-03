@@ -4,6 +4,7 @@ import { requireUser } from "../auth/requireUser.js";
 import { sessionView, startSession } from "../mining/sessions.js";
 import { getMiningStatus, listMiners, minerDetail } from "../mining/status.js";
 import { cancelClaim, createClaimIntent, getClaim } from "../claims/service.js";
+import { finishRound, startRound } from "../games/service.js";
 import { listProducts, listPurchases, syncFromApp, type StoreDeps } from "../store/service.js";
 import { dailyEarnings, getWallet, listLedger } from "../wallet/wallet.js";
 import { listWithdrawals, requestWithdrawal, sendWithdrawalCode } from "../wallet/withdrawals.js";
@@ -29,6 +30,8 @@ const claimBody = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("super"), tier: z.string().min(1).max(40) }),
   z.object({ kind: z.literal("start") }),
   z.object({ kind: z.literal("boost") }),
+  z.object({ kind: z.literal("game"), roundId: z.string().min(1).max(40) }),
+  z.object({ kind: z.literal("retry") }),
 ]);
 
 const sixDigits = z.string().trim().regex(/^\d{6}$/, "6-digit code");
@@ -123,6 +126,17 @@ export function v1Router(opts: { jwtAccessSecret: string; store: StoreDeps; mail
 
   r.post("/claims/:id/cancel", async (req, res) => {
     res.json(await cancelClaim(uid(req), req.params.id!));
+  });
+
+  // mini-games (games/service.ts)
+  r.post("/games/rounds", async (req, res) => {
+    const { game } = z.object({ game: z.enum(["block", "match"]) }).parse(req.body);
+    res.status(201).json(await startRound(uid(req), game));
+  });
+
+  r.post("/games/rounds/:id/finish", async (req, res) => {
+    const { won } = z.object({ won: z.boolean() }).parse(req.body);
+    res.json(await finishRound(uid(req), req.params.id!, won));
   });
 
   r.get("/store/products", async (_req, res) => {

@@ -153,6 +153,7 @@ export function configPages() {
         <label>Starter offer shown to new accounts for (hours, 0 = off)<input name="offerHours" value="${g.offerHours}" required></label></div>
         <div class="row"><label>Streak bonus every (days in a row, 0 = off)<input name="streakDays" value="${g.streakDays}" required></label><label>Streak bonus (GH/s until midnight)<input name="streakBonusGh" value="${g.streakBonusGh}" required></label></div>
         <div class="row"><label>Boost videos per day (0 = off)<input name="boostAdsPerDay" value="${g.boostAdsPerDay}" required></label><label>Boost lasts (minutes)<input name="boostMinutes" value="${g.boostMinutes}" required></label><label>Most GH/s one boost can add<input name="boostMaxGh" value="${g.boostMaxGh}" required></label></div>
+        <div class="row"><label>Game rewards per day (0 = games off)<input name="gameWinsPerDay" value="${g.gameWinsPerDay}" required></label><label>GH/s per game win (until midnight)<input name="gameGh" value="${g.gameGh}" required></label></div>
         <div><button class="btn">Save perks</button></div></form></div>
       <div class="card"><h2>Sale banner</h2><p class="muted">Shows a countdown banner on Home and in the Store until the end time. The price itself is whatever the store charges: change it in Play Console / App Store Connect, and set the product's "was" price under Products.</p>
         <form method="post" action="/admin/content/promo" class="form">${csrf}
@@ -198,6 +199,8 @@ export function configPages() {
       boostAdsPerDay: Math.floor(num(req, "boostAdsPerDay")),
       boostMinutes: Math.floor(num(req, "boostMinutes")),
       boostMaxGh: num(req, "boostMaxGh"),
+      gameWinsPerDay: Math.floor(num(req, "gameWinsPerDay")),
+      gameGh: num(req, "gameGh"),
     };
     for (const [k, v] of Object.entries(growth)) {
       if (typeof v === "number" && (!Number.isFinite(v) || v < 0)) throw new AppError(400, "invalid", `${k} must be zero or more.`);

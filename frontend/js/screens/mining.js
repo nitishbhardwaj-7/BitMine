@@ -259,7 +259,7 @@ async function waitForClaim(claimId) {
  * 'unsupported' (a browser without test mode). A claim that doesn't end in a
  * watched video is handed back so it doesn't block the next attempt.
  */
-async function watchAd(body) {
+export async function watchAd(body) {
   const intent = await post('/v1/claims', body);
   const giveBack = () => post(`/v1/claims/${intent.claimId}/cancel`).catch(() => undefined);
 

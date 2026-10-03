@@ -110,7 +110,7 @@ const productSchema = new Schema(
 const minerSchema = new Schema(
   {
     userId: { type: ObjectId, ref: "User", required: true },
-    source: { type: String, enum: ["paid", "claim", "super_claim", "admin_grant", "boost", "streak"], required: true },
+    source: { type: String, enum: ["paid", "claim", "super_claim", "admin_grant", "boost", "streak", "game"], required: true },
     gh: { type: Number, required: true, min: 0 },
     startAt: { type: Date, required: true },
     endAt: { type: Date, required: true },
@@ -148,6 +148,8 @@ const sessionSchema = new Schema(
      * even when two ad verifications arrive at the same moment.
      */
     claimCounts: { type: Map, of: Number, default: {} },
+    /** A game round was lost: a retry video is needed before the next round. */
+    gameLock: Boolean,
     /** Rewarded videos needed to start this day (fixed when the session is opened) and confirmed so far. */
     adsRequired: { type: Number, default: 0 },
     adsWatched: { type: Number, default: 0 },
@@ -165,8 +167,10 @@ const claimSchema = new Schema(
   {
     userId: { type: ObjectId, ref: "User", required: true },
     /** "start" = a video that counts towards starting the day's mining (no hashpower of its own). */
-    kind: { type: String, enum: ["regular", "super", "start", "boost"], required: true },
+    /** "game" = the reward for a won game round; "retry" = a video that unlocks the games after a loss. */
+    kind: { type: String, enum: ["regular", "super", "start", "boost", "game", "retry"], required: true },
     tierProductId: { type: ObjectId, ref: "Product" },
+    roundId: { type: ObjectId, ref: "GameRound" },
     gh: { type: Number, required: true },
     localDate: { type: String, required: true },
     status: { type: String, enum: ["pending", "verified", "expired", "rejected"], default: "pending" },
@@ -357,6 +361,8 @@ const appConfigSchema = new Schema(
       boostAdsPerDay: Number,
       boostMinutes: Number,
       boostMaxGh: Number,
+      gameWinsPerDay: Number,
+      gameGh: Number,
       offerHours: Number,
     },
     /** A limited-time sale banner shown on Home and in the Store. */
@@ -438,6 +444,21 @@ const lessonSchema = new Schema(
   },
   { timestamps: true },
 );
+
+// ── gameRounds: one play of a mini-game (games/service.ts) ──────────────
+const gameRoundSchema = new Schema(
+  {
+    userId: { type: ObjectId, ref: "User", required: true },
+    game: { type: String, enum: ["block", "match"], required: true },
+    localDate: { type: String, required: true },
+    status: { type: String, enum: ["playing", "won", "lost", "claimed"], default: "playing" },
+    startedAt: { type: Date, required: true },
+    finishedAt: Date,
+  },
+  { timestamps: true },
+);
+gameRoundSchema.index({ userId: 1, localDate: 1 });
+gameRoundSchema.index({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
 
 // ── storeSyncs: follow-up RevenueCat checks after a purchase ────────────
 const storeSyncSchema = new Schema(
@@ -546,6 +567,7 @@ export const Claim = mongoose.model("Claim", claimSchema);
 export const Purchase = mongoose.model("Purchase", purchaseSchema);
 export const SuperEntitlement = mongoose.model("SuperEntitlement", superEntitlementSchema);
 export const StoreSync = mongoose.model("StoreSync", storeSyncSchema);
+export const GameRound = mongoose.model("GameRound", gameRoundSchema);
 export const Otp = mongoose.model("Otp", otpSchema);
 export const RefreshToken = mongoose.model("RefreshToken", refreshTokenSchema);
 export const RateLimit = mongoose.model("RateLimit", rateLimitSchema);

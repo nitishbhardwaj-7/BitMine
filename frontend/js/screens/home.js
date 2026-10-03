@@ -13,6 +13,7 @@ import {
   liveBalanceHtml, liveSmallText, money, moneySub, minerDays, startHint, startLabel, superUpsellHTML, superPacksHTML,
 } from './parts.js';
 import { offerHTML, promoHTML, streakHTML, boostHTML, compareHTML, maybeOpenOfferSheet } from './offers.js';
+import { gamesHTML } from './games.js';
 
 function heroCard() {
   const s = state.status;
@@ -163,6 +164,8 @@ export const screens = {
               ${superUpsellHTML()}
               ${s && !s.session?.active ? `<button class="btn-primary btn-block" data-act="start-mining">${icons.bolt} Start mining</button>` : ''}
             </div>
+
+            ${gamesHTML()}
 
             ${offerHTML()}
 

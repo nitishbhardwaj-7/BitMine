@@ -20,8 +20,9 @@ import * as miningScreens from './screens/mining.js';
 import * as walletScreens from './screens/wallet.js';
 import * as contentScreens from './screens/content.js';
 import * as accountScreens from './screens/account.js';
+import * as gameScreens from './screens/games.js';
 
-const modules = [authScreens, homeScreens, miningScreens, walletScreens, contentScreens, accountScreens];
+const modules = [authScreens, homeScreens, miningScreens, walletScreens, contentScreens, accountScreens, gameScreens];
 const screens = Object.assign({}, ...modules.map((m) => m.screens ?? {}), {
   update: {
     nav: false,

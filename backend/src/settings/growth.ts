@@ -17,6 +17,9 @@ export interface GrowthSettings {
   boostMinutes: number;
   /** The most hashpower one boost can add. */
   boostMaxGh: number;
+  /** Game rewards that can be claimed per day (0 = games off), and what each adds until midnight. */
+  gameWinsPerDay: number;
+  gameGh: number;
   /** New accounts see the starter offer for this many hours (0 = off). */
   offerHours: number;
 }
@@ -28,6 +31,8 @@ export const DEFAULT_GROWTH: GrowthSettings = {
   boostAdsPerDay: 3,
   boostMinutes: 60,
   boostMaxGh: 500,
+  gameWinsPerDay: 10,
+  gameGh: 5.5,
   offerHours: 48,
 };
 
@@ -45,6 +50,8 @@ export async function getGrowth(): Promise<GrowthSettings> {
     boostAdsPerDay: Math.floor(n("boostAdsPerDay")),
     boostMinutes: Math.max(1, Math.floor(n("boostMinutes"))),
     boostMaxGh: n("boostMaxGh"),
+    gameWinsPerDay: Math.floor(n("gameWinsPerDay")),
+    gameGh: n("gameGh"),
     offerHours: n("offerHours"),
   };
 }

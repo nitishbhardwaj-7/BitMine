@@ -49,6 +49,7 @@ Set in admin → FAQs & app ("Perks & bonuses", "Sale banner"); defaults in `bac
 | Paid-miner owners skip the daily start videos | on | A few ad views per paying user per day |
 | Streak: every 7th day started in a row adds 55 GH/s until midnight | on | At most ~2.6 sats per user per week |
 | Boost video: doubles running hashpower (max 500 GH/s) for 60 min, 3 a day | on | At most 1 sat per video, well under what a rewarded view pays |
+| Mini-games (Block Miner, Hash Match): a win is claimed with a rewarded video for +5.5 GH/s until midnight, up to 10 a day; a loss needs a video before the next try | on | At most ~2.6 sats per user per day, for 10+ ad views |
 | Starter Pack (`starter_bundle`): Mini Miner + Super Miner for 30 days, $3.99, offered for 48 h after sign-up until the first purchase | on | None (a discount) |
 | Paid miners (Mini to Titan) are auto-renewing monthly subscriptions; each paid month is a miner for that month. Super Miner tiers and the Starter Pack are one-time | on | None |
 | Sale banner with countdown | off | None; the real price is whatever the store charges |

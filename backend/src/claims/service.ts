@@ -12,7 +12,8 @@
  * atomic conditional $inc on the session so concurrent callbacks can't exceed it.
  */
 import mongoose, { Types } from "mongoose";
-import { Claim, Miner, Product, Session, SuperEntitlement } from "../models/index.js";
+import { Claim, GameRound, Miner, Product, Session, SuperEntitlement } from "../models/index.js";
+import { GAME_TRACK } from "../games/service.js";
 import { AppError, notFound } from "../lib/errors.js";
 import { logger } from "../lib/logger.js";
 import { getEconomics } from "../settings/economics.js";
@@ -26,16 +27,23 @@ export const CLAIM_TTL_MS = 10 * 60 * 1000;
 export const MAX_OPEN_CLAIMS = 3;
 const REGULAR_TRACK = "regular";
 
-export type ClaimRequest = { kind: "regular" } | { kind: "super"; tier: string } | { kind: "start" } | { kind: "boost" };
+export type ClaimRequest =
+  | { kind: "regular" }
+  | { kind: "super"; tier: string }
+  | { kind: "start" }
+  | { kind: "boost" }
+  | { kind: "game"; roundId: string }
+  | { kind: "retry" };
 
 interface Track {
   track: string;
   gh: number;
   cap: number;
   tierProductId?: Types.ObjectId;
+  roundId?: Types.ObjectId;
 }
 
-async function resolveTrack(userId: Types.ObjectId, req: Exclude<ClaimRequest, { kind: "start" }>, now: number): Promise<Track> {
+async function resolveTrack(userId: Types.ObjectId, req: Exclude<ClaimRequest, { kind: "start" } | { kind: "retry" }>, now: number): Promise<Track> {
   if (req.kind === "regular") {
     const s = await getEconomics(new Date(now));
     return { track: REGULAR_TRACK, gh: s.claimGh, cap: s.claimsPerDay };
@@ -53,6 +61,16 @@ async function resolveTrack(userId: Types.ObjectId, req: Exclude<ClaimRequest, {
     const gh = await boostGhFor(userId, now, g);
     if (gh <= 0) throw new AppError(409, "nothing_to_boost", "Claim some hashpower first, then boost it.");
     return { track: BOOST_TRACK, gh, cap: g.boostAdsPerDay };
+  }
+  if (req.kind === "game") {
+    // The reward for a game round the app reported as won; one claim per round.
+    const g = await getGrowth();
+    const session = await currentSession(userId, now);
+    const round = Types.ObjectId.isValid(req.roundId) ? await GameRound.findOne({ _id: req.roundId, userId }).lean() : null;
+    if (!round || round.status !== "won" || round.localDate !== session?.localDate) {
+      throw new AppError(409, "round_not_won", "There's no reward to claim for that round.");
+    }
+    return { track: GAME_TRACK, gh: g.gameGh, cap: g.gameWinsPerDay, roundId: round._id };
   }
   const product = await Product.findOne({ sku: req.tier, kind: "super_miner", active: true }).lean();
   if (!product || product.claimGh == null || product.claimsPerDay == null) throw notFound("Super Miner tier");
@@ -88,6 +106,16 @@ export async function createClaimIntent(userId: Types.ObjectId, req: ClaimReques
     throw new AppError(409, "session_not_started", "Start today's mining first.");
   }
 
+  if (req.kind === "retry") {
+    // A video that unlocks the games again after a lost round; it adds no hashpower.
+    if (!session.gameLock) throw new AppError(409, "retry_not_needed", "You can play again right away.");
+    if ((await Claim.countDocuments(openPendingFilter(userId, now))) >= MAX_OPEN_CLAIMS) {
+      throw new AppError(429, "too_many_pending", "Finish the video you already opened, then try again.");
+    }
+    const claim = await Claim.create({ userId, kind: "retry", gh: 0, localDate: session.localDate, expiresAt: new Date(now + CLAIM_TTL_MS) });
+    return { claimId: String(claim._id), kind: "retry" as const, gh: 0, expiresAt: claim.expiresAt.toISOString(), remainingToday: 0 };
+  }
+
   const t = await resolveTrack(userId, req, now);
 
   const openAll = await Claim.countDocuments(openPendingFilter(userId, now));
@@ -112,6 +140,7 @@ export async function createClaimIntent(userId: Types.ObjectId, req: ClaimReques
     userId,
     kind: req.kind,
     tierProductId: t.tierProductId,
+    roundId: t.roundId,
     gh: t.gh,
     localDate: session.localDate,
     expiresAt: new Date(now + CLAIM_TTL_MS),
@@ -199,6 +228,18 @@ export async function verifySsvReward(reward: SsvReward, now = Date.now()): Prom
   }
 
   if (claim.kind === "start") return verifyStartAd(claim, session._id, reward, now);
+  if (claim.kind === "retry") {
+    const marked = await Claim.updateOne(
+      { _id: claim._id, status: "pending" },
+      { $set: { status: "verified", "admob.transactionId": reward.transactionId, "admob.adUnit": reward.adUnit, "admob.rewardItem": reward.rewardItem, "admob.verifiedAt": new Date(now) } },
+    ).catch((err: { code?: number }) => {
+      if (err.code === 11000) return null; // the same AdMob transaction on another claim: a replay
+      throw err;
+    });
+    if (!marked || marked.modifiedCount !== 1) return { result: "duplicate" };
+    await Session.updateOne({ _id: session._id }, { $set: { gameLock: false } });
+    return { result: "counted", active: true };
+  }
 
   let cap: number;
   let track: string;
@@ -207,6 +248,9 @@ export async function verifySsvReward(reward: SsvReward, now = Date.now()): Prom
   if (claim.kind === "regular") {
     cap = (await getEconomics(new Date(now))).claimsPerDay;
     track = REGULAR_TRACK;
+  } else if (claim.kind === "game") {
+    cap = (await getGrowth()).gameWinsPerDay;
+    track = GAME_TRACK;
   } else if (claim.kind === "boost") {
     const g = await getGrowth();
     cap = g.boostAdsPerDay;
@@ -251,11 +295,17 @@ export async function verifySsvReward(reward: SsvReward, now = Date.now()): Prom
       );
       if (marked.modifiedCount !== 1) throw new Abort("concurrent_verify");
 
+      if (claim.kind === "game") {
+        // One reward per won round.
+        const taken = await GameRound.updateOne({ _id: claim.roundId, status: "won" }, { $set: { status: "claimed" } }, { session: tx });
+        if (taken.modifiedCount !== 1) throw new Abort("round_claimed");
+      }
+
       const [miner] = await Miner.create(
         [
           {
             userId: claim.userId,
-            source: claim.kind === "regular" ? "claim" : claim.kind === "boost" ? "boost" : "super_claim",
+            source: claim.kind === "regular" ? "claim" : claim.kind === "boost" ? "boost" : claim.kind === "game" ? "game" : "super_claim",
             gh: claim.gh,
             startAt: new Date(startAt),
             endAt,
@@ -270,9 +320,9 @@ export async function verifySsvReward(reward: SsvReward, now = Date.now()): Prom
     return { result: "granted", minerId };
   } catch (err) {
     if (err instanceof Abort) {
-      if (err.reason === "daily_limit") {
+      if (err.reason === "daily_limit" || err.reason === "round_claimed") {
         await markClaim(claim._id, "rejected");
-        return { result: "ignored", reason: "daily_limit" };
+        return { result: "ignored", reason: err.reason };
       }
       return { result: "duplicate" };
     }
