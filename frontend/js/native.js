@@ -17,21 +17,27 @@ export const isNative = Boolean(window.Capacitor?.isNativePlatform?.());
 export const platform = window.Capacitor?.getPlatform?.() ?? 'web';
 
 // ── rewarded ads ──────────────────────────────────────────────────────────
+/** Rejects if `promise` hasn't settled within `ms`: an ad network can leave a load hanging forever. */
+const withTimeout = (promise, ms, message) =>
+  Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms))]);
+
 let admobReady = false;
 
 /**
  * `testDevices` comes from the backend's app config (admin → FAQs & app). Phones
  * listed there receive Google test videos even before AdMob approves the app,
  * and their callbacks still verify claims on the server.
+ * Plugins are handed back wrapped ({ AdMob }): a bare Capacitor plugin proxy returned from an
+ * async function is treated as a thenable, and awaiting it hangs on Android.
  */
 async function admob(testDevices = []) {
   const { AdMob } = await import('@capacitor-community/admob');
   if (!admobReady) {
     const testing = import.meta.env?.DEV === true || testDevices.length > 0;
-    await AdMob.initialize({ initializeForTesting: testing, testingDevices: testDevices });
+    await withTimeout(AdMob.initialize({ initializeForTesting: testing, testingDevices: testDevices }), 15_000, 'ads did not start');
     admobReady = true;
   }
-  return AdMob;
+  return { AdMob };
 }
 
 /**
@@ -41,8 +47,9 @@ async function admob(testDevices = []) {
  */
 export async function showRewardedAd({ adUnitId, userId, claimId, testDevices = [] }) {
   if (!isNative) return false; // browser: the caller uses the dev shortcut instead
-  const AdMob = await admob(testDevices);
-  await AdMob.prepareRewardVideoAd({ adId: adUnitId, ssv: { userId, customData: claimId } });
+  const { AdMob } = await admob(testDevices);
+  // Loading is time-limited (the caller then hands the claim back); watching is not.
+  await withTimeout(AdMob.prepareRewardVideoAd({ adId: adUnitId, ssv: { userId, customData: claimId } }), 25_000, 'no video loaded in time');
   const reward = await AdMob.showRewardVideoAd();
   return Boolean(reward);
 }
@@ -60,14 +67,14 @@ async function purchases(userId) {
   } else if (userId) {
     await Purchases.logIn({ appUserID: userId });
   }
-  return Purchases;
+  return { Purchases };
 }
 
 /** Store prices for our products, keyed by store product id (localised, e.g. "₹399"). */
 export async function storePrices(userId, storeIds) {
   if (!isNative || !storeIds.length) return {};
   try {
-    const Purchases = await purchases(userId);
+    const { Purchases } = await purchases(userId);
     const { products } = await Purchases.getProducts({ productIdentifiers: storeIds, type: 'NON_SUBSCRIPTION' });
     return Object.fromEntries(products.map((p) => [p.identifier, p.priceString]));
   } catch {
@@ -77,7 +84,7 @@ export async function storePrices(userId, storeIds) {
 
 /** Buys one product. Resolves true when the store completed the purchase (the server then verifies it). */
 export async function buyProduct(userId, storeId) {
-  const Purchases = await purchases(userId);
+  const { Purchases } = await purchases(userId);
   const { products } = await Purchases.getProducts({ productIdentifiers: [storeId], type: 'NON_SUBSCRIPTION' });
   if (!products.length) throw new Error('This product is not available in your store yet.');
   try {
@@ -107,13 +114,13 @@ async function social() {
     });
     socialReady = true;
   }
-  return SocialLogin;
+  return { SocialLogin };
 }
 
 /** Returns { idToken, name? } from Google or Apple, or null if the user cancelled. */
 export async function socialSignIn(provider) {
   if (!isNative) throw new Error(`${provider === 'google' ? 'Google' : 'Apple'} sign-in works in the phone app.`);
-  const SocialLogin = await social();
+  const { SocialLogin } = await social();
   try {
     const res = await SocialLogin.login({ provider, options: provider === 'apple' ? { scopes: ['email', 'name'] } : { scopes: ['email', 'profile'] } });
     const r = res?.result ?? {};
