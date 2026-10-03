@@ -2,6 +2,8 @@ import { Types } from "mongoose";
 import { Balance, Ledger, Withdrawal } from "../models/index.js";
 import { getEconomics } from "../settings/economics.js";
 import { ensureBalance } from "./balances.js";
+import { localDate } from "../lib/time.js";
+import { loadUserTimezone } from "../users/timezone.js";
 
 const LEDGER_LABEL: Record<string, string> = {
   mining: "Mining",
@@ -54,23 +56,69 @@ export async function dailyEarnings(userId: Types.ObjectId, days = 14, now = Dat
   return { days: [...byDay.values()].sort((a, b) => (a.date < b.date ? 1 : -1)) };
 }
 
+/** Raw ledger rows read per page: enough for a month of hourly mining credits. */
+const LEDGER_PAGE_ROWS = 800;
+
+interface LedgerLine {
+  id: string;
+  type: string;
+  label: string;
+  amountMsat: number;
+  createdAt?: string;
+  /** Set on a day's mining total: the local day (YYYY-MM-DD) it adds up. */
+  day?: string;
+}
+
 /**
- * The user's transactions, newest first, 50 per page. Hourly mining credits
- * are shown as they are; the app can group them by day.
+ * The user's transactions, newest first. Mining is credited every hour, but a
+ * day of it is shown as one line: the hourly credits are added up per local
+ * day (the day the hour was mined, in the user's time zone). Everything else
+ * (withdrawals, referral rewards, adjustments) is listed as it happened.
  */
-export async function listLedger(userId: Types.ObjectId, before?: string) {
+export async function listLedger(userId: Types.ObjectId, before?: string, now = Date.now()) {
   const filter: Record<string, unknown> = { userId, bucket: "available" };
   if (before && Types.ObjectId.isValid(before)) filter._id = { $lt: new Types.ObjectId(before) };
-  const rows = await Ledger.find(filter).sort({ _id: -1 }).limit(51).lean();
-  const page = rows.slice(0, 50);
-  return {
-    entries: page.map((e) => ({
-      id: String(e._id),
-      type: e.type,
-      label: LEDGER_LABEL[e.type] ?? e.type,
-      amountMsat: e.amountMsat,
-      createdAt: e.createdAt?.toISOString(),
-    })),
-    nextCursor: rows.length > 50 ? String(page[page.length - 1]!._id) : null,
-  };
+  const [found, tz] = await Promise.all([
+    Ledger.find(filter).sort({ _id: -1 }).limit(LEDGER_PAGE_ROWS + 1).lean(),
+    loadUserTimezone(userId, now),
+  ]);
+  const hasMore = found.length > LEDGER_PAGE_ROWS;
+  let rows = found.slice(0, LEDGER_PAGE_ROWS);
+  let nextCursor: string | null = hasMore ? String(rows[rows.length - 1]!._id) : null;
+  if (hasMore) {
+    // The oldest mining day on this page may be cut in half by the page limit:
+    // stop before it, so the next page reads that day in full.
+    const lastMining = [...rows].reverse().find((e) => e.type === "mining");
+    const cutDay = lastMining ? dayOf(lastMining, tz, now) : null;
+    const cutAt = cutDay ? rows.findIndex((e) => e.type === "mining" && dayOf(e, tz, now) === cutDay) : -1;
+    if (cutAt > 0) {
+      rows = rows.slice(0, cutAt);
+      nextCursor = String(rows[rows.length - 1]!._id);
+    }
+  }
+
+  const lines: LedgerLine[] = [];
+  const days = new Map<string, LedgerLine>();
+  for (const e of rows) {
+    if (e.type !== "mining") {
+      lines.push({ id: String(e._id), type: e.type, label: LEDGER_LABEL[e.type] ?? e.type, amountMsat: e.amountMsat, createdAt: e.createdAt?.toISOString() });
+      continue;
+    }
+    const day = dayOf(e, tz, now);
+    const line = days.get(day);
+    if (line) {
+      line.amountMsat += e.amountMsat;
+    } else {
+      const fresh: LedgerLine = { id: "mining:" + day, type: "mining", label: LEDGER_LABEL.mining ?? "Mining", amountMsat: e.amountMsat, createdAt: e.createdAt?.toISOString(), day };
+      days.set(day, fresh);
+      lines.push(fresh);
+    }
+  }
+  return { entries: lines, nextCursor };
+}
+
+/** The local day an hourly mining credit was mined on. */
+function dayOf(e: { meta?: unknown; createdAt?: Date | null }, tz: string, now: number): string {
+  const meta = e.meta as { hourStart?: Date; from?: Date } | undefined;
+  return localDate(new Date(meta?.hourStart ?? meta?.from ?? e.createdAt ?? new Date(now)).getTime(), tz);
 }

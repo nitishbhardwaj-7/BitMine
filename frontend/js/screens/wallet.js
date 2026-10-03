@@ -36,11 +36,20 @@ function withdrawalRow(w) {
     </div>`;
 }
 
+/** A day's mining total: "Today", "Yesterday" or the date. */
+function dayLabel(day) {
+  const d = new Date(`${day}T12:00:00`);
+  const diff = Math.round((new Date(new Date().toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86_400_000);
+  if (diff === 0) return 'Today · mined so far';
+  if (diff === 1) return 'Yesterday';
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+}
+
 function ledgerRow(e) {
   const plus = e.amountMsat > 0;
   return `
     <div class="tx-row">
-      <div><h4>${esc(e.label)}</h4><p>${fmtDateTime(e.createdAt)}</p></div>
+      <div><h4>${esc(e.label)}</h4><p>${e.day ? dayLabel(e.day) : fmtDateTime(e.createdAt)}</p></div>
       <span class="tx-amount ${plus ? 'plus' : 'minus'}">${plus ? '+' : '−'}${(Math.abs(e.amountMsat) / 1000).toLocaleString('en-US', { maximumFractionDigits: 3 })} sats</span>
     </div>`;
 }
@@ -124,9 +133,9 @@ function transactionsScreen() {
     <div class="screen-scroll-view animate-fade-up">
       ${header('Transactions')}
       <div class="screen-content-padding" style="gap: 14px;">
-        <p class="bm-hint">Mining is credited every hour. Withdrawals move sats out of your available balance as soon as you request them.</p>
+        <p class="bm-hint">Mining is shown as one total per day. Withdrawals move sats out of your available balance as soon as you request them.</p>
         <div class="bm-card" style="padding: 4px 16px;">
-          ${l == null ? (state.errors.ledger ? errorCard(state.errors.ledger, 'reload') : skeleton(5)) : l.entries.length ? l.entries.map(ledgerRow).join('') : emptyState('No transactions yet', 'Your hourly mining credits will appear here.')}
+          ${l == null ? (state.errors.ledger ? errorCard(state.errors.ledger, 'reload') : skeleton(5)) : l.entries.length ? l.entries.map(ledgerRow).join('') : emptyState('No transactions yet', 'Your daily mining totals will appear here.')}
         </div>
         ${l?.nextCursor ? `<button class="btn-soft btn-block" data-act="ledger-more">Load more</button>` : ''}
       </div>
