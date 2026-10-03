@@ -73,7 +73,6 @@ export const screens = {
               <div class="hero-brand">
                 <button class="hero-icon-btn" aria-label="Settings" data-go="settings">${icons.menu}</button>
                 <span class="brand-title">BitMine</span>
-                <div class="network-pill"><span class="pulse-dot" ${s?.mining ? '' : 'style="background: #A3A1B2; animation: none;"'}></span><span>${s?.mining ? 'Mining' : 'Idle'}</span></div>
               </div>
               <div class="hero-top-icons">
                 <button class="hero-icon-btn" aria-label="Notifications" data-go="notifications">${icons.bell}${unread ? '<span class="notification-badge-dot"></span>' : ''}</button>
