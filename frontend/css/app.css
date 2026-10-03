@@ -472,3 +472,4 @@ html.device .bubble, html.device .faq-item p, html.device .referral-code-text { 
 .match-card.matched { box-shadow: inset 0 0 0 2px var(--color-success); opacity: 0.75; }
 .currency-select-pill.on-dark { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.85); flex-shrink: 0; }
 .currency-select-pill.on-dark:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
+.hero-greeting-row { display: flex; align-items: center; justify-content: center; gap: 8px; }

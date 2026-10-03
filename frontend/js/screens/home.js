@@ -95,13 +95,13 @@ export const screens = {
                 <div class="hero-balance-glass-card" id="heroBalanceCard">
                   <div class="glass-reflection-sweep"></div>
                   <div class="hero-balance-text" id="heroBalanceText">
-                    <span class="hero-greeting hero-stagger-4">Wallet balance</span>
+                    <div class="hero-greeting-row hero-stagger-4"><span class="hero-greeting">Wallet balance</span>
+                      <button class="currency-select-pill on-dark" data-act="cycle-unit" aria-label="Change balance unit">${unit().toUpperCase()}
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                      </button></div>
                     <div class="hero-balance-row">
                       <span class="hero-balance-value" id="heroBalanceValue" data-live="balance" data-act="cycle-unit" style="cursor: pointer;">${s ? liveBalanceHtml() : '—'}</span>
                       <button class="balance-eye-btn" data-act="toggle-balance" aria-label="Hide or show balance">${icons.eye}</button>
-                      <button class="currency-select-pill on-dark" data-act="cycle-unit" aria-label="Change balance unit">${unit().toUpperCase()}
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
-                      </button>
                     </div>
                     <div class="hero-balance-sub" id="heroBalanceSub" style="margin-top: 5px;">
                       <span class="pct-pill glass-light">
