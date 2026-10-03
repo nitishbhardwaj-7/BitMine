@@ -43,7 +43,7 @@ describe("public endpoints", () => {
 
     const cfg = (await (await fetch(`${base}/v1/public/config`)).json()) as Record<string, any>;
     expect(cfg.adUnits.android.rewarded).toBe("ca-app-pub-3940256099942544/5224354917");
-    expect(cfg.economics).toEqual({ rateMsatPerGhDay: 48, claimGh: 5.5, claimsPerDay: 60, minWithdrawalSats: 2500, referralPercent: 5, referralCapSatsPerDay: 5 });
+    expect(cfg.economics).toEqual({ rateMsatPerGhDay: 48, claimGh: 5.5, claimsPerDay: 60, minWithdrawalSats: 2500, referralPercent: 5, referralCapSatsPerDay: 5, dailyStartRequired: false, startAds: 0 });
   });
 });
 

@@ -20,7 +20,8 @@
     "admin:create": "tsx src/scripts/create-admin.ts",
     "news:refresh": "tsx src/scripts/refresh-news.ts",
     "email:test": "tsx src/scripts/test-email.ts",
-    "migrate:monthly": "tsx src/scripts/migrate-monthly-miners.ts"
+    "migrate:monthly": "tsx src/scripts/migrate-monthly-miners.ts",
+    "migrate:daily-start": "tsx src/scripts/enable-daily-start.ts"
   },
   "dependencies": {
     "cors": "^2.8.6",

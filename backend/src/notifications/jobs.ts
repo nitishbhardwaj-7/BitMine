@@ -84,11 +84,11 @@ export async function runReminders(now = Date.now()) {
       const tz = effectiveTimezone(u, now);
       if (localHour(now, tz) !== REMINDER_LOCAL_HOUR) continue;
       const day = localDate(now, tz);
-      if (await Session.exists({ userId: u._id, localDate: day })) continue;
+      if (await Session.exists({ userId: u._id, localDate: day, $or: [{ activatedAt: { $ne: null } }, { adsRequired: { $in: [0, null] } }] })) continue;
       const created = await notify(u._id, {
         kind: "mining_reminder",
-        title: "Your miners are ready",
-        body: "Tap Start mining to unlock today's claims.",
+        title: "Your miners are waiting",
+        body: "Mining stops at midnight. Start today's mining to keep earning.",
         dedupeKey: `mining_reminder:${day}`,
       });
       if (created) mining++;

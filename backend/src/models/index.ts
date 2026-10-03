@@ -65,6 +65,8 @@ const economicsValuesSchema = new Schema(
     referralPercent: { type: Number, required: true },
     referralCapSatsPerDay: { type: Number, required: true },
     withdrawalAutoApproveMaxSats: { type: Number, required: true },
+    dailyStartRequired: { type: Boolean },
+    startAds: { type: Number },
   },
   { _id: false },
 );
@@ -141,17 +143,24 @@ const sessionSchema = new Schema(
      * even when two ad verifications arrive at the same moment.
      */
     claimCounts: { type: Map, of: Number, default: {} },
+    /** Rewarded videos needed to start this day (fixed when the session is opened) and confirmed so far. */
+    adsRequired: { type: Number, default: 0 },
+    adsWatched: { type: Number, default: 0 },
+    /** When the day's mining switched on (the last start video). Unset while the videos are still owed. */
+    activatedAt: Date,
   },
   { timestamps: true },
 );
 sessionSchema.index({ userId: 1, localDate: 1 }, { unique: true });
+sessionSchema.index({ userId: 1, endsAt: 1 });
 sessionSchema.index({ endsAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 
 // ── claims: one per rewarded ad ──────────────────────────────────────────
 const claimSchema = new Schema(
   {
     userId: { type: ObjectId, ref: "User", required: true },
-    kind: { type: String, enum: ["regular", "super"], required: true },
+    /** "start" = a video that counts towards starting the day's mining (no hashpower of its own). */
+    kind: { type: String, enum: ["regular", "super", "start"], required: true },
     tierProductId: { type: ObjectId, ref: "Product" },
     gh: { type: Number, required: true },
     localDate: { type: String, required: true },

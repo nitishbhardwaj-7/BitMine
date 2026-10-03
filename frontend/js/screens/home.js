@@ -10,20 +10,20 @@ import { fmtHash } from '../format.js';
 import { initHeroScrollCollapse } from '../heroCollapse.js';
 import {
   tickerHTML, minerCard, claimTracksHTML, countdownText, featuredNews, newsRow, lessonRow, settlementRows,
-  liveBalanceHtml, liveSmallText, money, moneySub, minerDays,
+  liveBalanceHtml, liveSmallText, money, moneySub, minerDays, startHint, startLabel,
 } from './parts.js';
 
 function heroCard() {
   const s = state.status;
   const me = state.me;
-  if (s && !s.session) {
+  if (s && !s.session?.active) {
     return `
       <div class="security-alert-card hero-stagger-6" id="heroSecurityCard">
         <div class="security-alert-left">
           <div class="shield-icon-glow">${icons.bolt}</div>
-          <div class="security-alert-text"><h4>Start today's mining</h4><p>Unlock ${s.claims.cap} free claims until midnight.</p></div>
+          <div class="security-alert-text"><h4>Start today's mining</h4><p>${startHint()}</p></div>
         </div>
-        <button class="btn-primary" style="padding: 7px 14px; font-size: 12px;" data-act="start-mining">Start</button>
+        <button class="btn-primary" style="padding: 7px 14px; font-size: 12px;" data-act="start-mining">${startLabel()}</button>
       </div>`;
   }
   if (me && !me.twoFactorEnabled) {
@@ -40,7 +40,7 @@ function heroCard() {
     <div class="security-alert-card hero-stagger-6" id="heroSecurityCard">
       <div class="security-alert-left">
         <div class="shield-icon-glow">${icons.pulse}</div>
-        <div class="security-alert-text"><h4>Mining is running</h4><p>Claims reset in <span data-live="countdown">${countdownText()}</span>.</p></div>
+        <div class="security-alert-text"><h4>Mining is running</h4><p>${s?.dailyStartRequired ? 'Stops at midnight, in' : 'Claims reset in'} <span data-live="countdown">${countdownText()}</span>.</p></div>
       </div>
       <button class="btn-primary" style="padding: 7px 14px; font-size: 12px;" data-go="mining">Boost</button>
     </div>`;
@@ -71,7 +71,7 @@ export const screens = {
                 <button class="hero-icon-btn" aria-label="Settings" data-go="settings">${icons.menu}</button>
                 <img src="./assets/images/logo.png" class="brand-logo-img" alt="BitMine"/>
                 <span class="brand-title">BitMine</span>
-                <div class="network-pill"><span class="pulse-dot" ${s?.gh.total ? '' : 'style="background: #A3A1B2; animation: none;"'}></span><span>${s?.gh.total ? 'Mining' : 'Idle'}</span></div>
+                <div class="network-pill"><span class="pulse-dot" ${s?.mining ? '' : 'style="background: #A3A1B2; animation: none;"'}></span><span>${s?.mining ? 'Mining' : 'Idle'}</span></div>
               </div>
               <div class="hero-top-icons">
                 <button class="hero-icon-btn" aria-label="Notifications" data-go="notifications">${icons.bell}${unread ? '<span class="notification-badge-dot"></span>' : ''}</button>
@@ -152,17 +152,17 @@ export const screens = {
 
             <div class="bm-card mining-card">
               <div class="mining-card-head">
-                <div><h4>Today's claims</h4><p>${s?.session ? 'Claimed hashpower mines until midnight.' : 'Start mining to unlock your claims.'}</p></div>
+                <div><h4>Today's claims</h4><p>${s?.session?.active ? 'Claimed hashpower mines until midnight.' : 'Start mining to unlock your claims.'}</p></div>
                 <span class="reset-chip">${icons.clock}<span data-live="countdown">${countdownText()}</span></span>
               </div>
               ${s ? claimTracksHTML() : skeleton(2)}
-              ${s && !s.session ? `<button class="btn-primary btn-block" data-act="start-mining">${icons.bolt} Start mining</button>` : ''}
+              ${s && !s.session?.active ? `<button class="btn-primary btn-block" data-act="start-mining">${icons.bolt} Start mining</button>` : ''}
             </div>
 
             <div class="promo-upgrade-card" data-go="store">
               <div class="promo-left">
                 <div class="promo-miner-thumb"><img src="./assets/images/miner_rig_3d.jpg" alt=""/></div>
-                <div class="promo-text"><h4>Upgrade Your Mining Power</h4><p>Paid miners mine 24/7 for ${minerDays()} days.</p></div>
+                <div class="promo-text"><h4>Upgrade Your Mining Power</h4><p>Paid miners add hashpower for ${minerDays()} days.</p></div>
               </div>
               <div style="color: var(--color-primary-purple);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg></div>
             </div>
@@ -173,7 +173,7 @@ export const screens = {
                 ${active.length
                   ? active.slice(0, 2).map((m) => minerCard(m, true)).join('')
                   : `<div class="bm-card" style="padding: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-                       <div><h4 style="font-size: 14px; font-weight: 800;">No paid miners yet</h4><p style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Mine around the clock without claiming.</p></div>
+                       <div><h4 style="font-size: 14px; font-weight: 800;">No paid miners yet</h4><p style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Add hashpower without claiming.</p></div>
                        <button class="btn-primary" style="padding: 7px 14px; font-size: 12px;" data-go="store">Browse</button>
                      </div>`}
               </div>

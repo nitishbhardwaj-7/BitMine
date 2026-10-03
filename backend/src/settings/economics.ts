@@ -24,14 +24,19 @@ export async function getRateSchedule(): Promise<RatePeriod[]> {
   if (versions.length === 0) {
     throw new Error("No economics settings found: run the seed before accruing.");
   }
-  return versions.map((v) => ({ effectiveAt: v.effectiveAt.getTime(), rateMsatPerGhDay: v.values.rateMsatPerGhDay }));
+  return versions.map((v) => ({
+    effectiveAt: v.effectiveAt.getTime(),
+    rateMsatPerGhDay: v.values.rateMsatPerGhDay,
+    gated: Boolean(v.values.dailyStartRequired),
+  }));
 }
 
 /** Settings in force at `at` (default now). */
 export async function getEconomics(at = new Date()): Promise<EconomicsSettings & { version: number }> {
   const v = await Settings.findOne({ key: KEY, effectiveAt: { $lte: at } }).sort({ effectiveAt: -1, version: -1 }).lean();
   if (!v) throw new Error("No economics settings in force.");
-  return { ...v.values, version: v.version };
+  // Versions written before the daily-start rule have neither field.
+  return { ...v.values, dailyStartRequired: v.values.dailyStartRequired ?? false, startAds: v.values.startAds ?? 0, version: v.version };
 }
 
 /**

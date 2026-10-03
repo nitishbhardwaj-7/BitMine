@@ -9,8 +9,8 @@ import { nextLocalMidnight } from "../lib/time.js";
 import { getEconomics, getRateSchedule } from "../settings/economics.js";
 import { ensureBalance } from "../wallet/balances.js";
 import { loadUserTimezone } from "../users/timezone.js";
-import { earnedMsat, msatPerSecondAt, type MinerSpan } from "./accrual.js";
-import { claimCount, currentSession } from "./sessions.js";
+import { earnedMsat, isGatedAt, msatPerSecondAt, type MinerSpan } from "./accrual.js";
+import { claimCount, currentSession, loadWindows, sessionView } from "./sessions.js";
 
 const iso = (d: Date | number) => new Date(d).toISOString();
 
@@ -39,8 +39,12 @@ export async function getMiningStatus(userId: Types.ObjectId, now = Date.now()) 
     revokedAt: m.revokedAt?.getTime() ?? null,
   }));
 
+  // With the daily-start rule, hashpower only earns while the day's session is on.
+  const windows = await loadWindows(userId, Math.min(accruedUntil, now), now + 1);
+  const msatPerSecond = msatPerSecondAt(spans, schedule, now, windows);
+
   // Earned since the last hourly credit: shown as "mining", not yet withdrawable.
-  const unsettledMsat = Math.floor(earnedMsat(spans, schedule, accruedUntil, now) + (bal!.accrualRemainder ?? 0));
+  const unsettledMsat = Math.floor(earnedMsat(spans, schedule, accruedUntil, now, windows) + (bal!.accrualRemainder ?? 0));
 
   const ghBySource = { paid: 0, claim: 0, super: 0 };
   for (const m of minerDocs) {
@@ -79,9 +83,13 @@ export async function getMiningStatus(userId: Types.ObjectId, now = Date.now()) 
       displayMsat: bal!.availableMsat + unsettledMsat,
       accruedUntil: iso(accruedUntil),
     },
-    msatPerSecond: msatPerSecondAt(spans, schedule, now),
+    msatPerSecond,
+    /** True while sats are actually being earned right now. */
+    mining: msatPerSecond > 0,
+    /** The daily-start rule is on: mining stops at midnight until today's session is started. */
+    dailyStartRequired: isGatedAt(schedule, now),
     gh: { total: ghBySource.paid + ghBySource.claim + ghBySource.super, ...ghBySource },
-    session: session ? { localDate: session.localDate, startedAt: iso(session.startedAt), endsAt: iso(session.endsAt) } : null,
+    session: sessionView(session, now),
     claims: { gh: settings.claimGh, used: counts("regular"), cap: settings.claimsPerDay },
     superTiers,
     nextMidnight: iso(nextLocalMidnight(now, tz)),
@@ -97,8 +105,12 @@ export async function minerDetail(userId: Types.ObjectId, id: string, now = Date
   const schedule = await getRateSchedule();
   const span: MinerSpan = { gh: m.gh, startAt: m.startAt.getTime(), endAt: m.endAt.getTime(), revokedAt: m.revokedAt?.getTime() ?? null };
   const end = Math.min(span.endAt, span.revokedAt ?? Infinity);
-  const earned = earnedMsat([span], schedule, span.startAt, Math.min(now, end));
-  const total = earnedMsat([span], schedule, span.startAt, end);
+  // "Mined so far" follows the days the user actually started; the totals are the
+  // most this miner can earn (mining every day from midnight).
+  const always = [{ start: span.startAt, end }];
+  const windows = await loadWindows(userId, span.startAt, Math.min(now, end) + 1);
+  const earned = earnedMsat([span], schedule, span.startAt, Math.min(now, end), windows);
+  const total = earnedMsat([span], schedule, span.startAt, end, always);
   return {
     id: String(m._id),
     source: m.source,
@@ -111,7 +123,7 @@ export async function minerDetail(userId: Types.ObjectId, id: string, now = Date
     daysLeft: Math.max(0, Math.ceil((end - now) / 86_400_000)),
     earnedMsat: Math.floor(earned),
     expectedTotalMsat: Math.floor(total),
-    msatPerDay: Math.floor(msatPerSecondAt([span], schedule, Math.min(now, end - 1)) * 86_400),
+    msatPerDay: Math.floor(msatPerSecondAt([span], schedule, Math.min(now, end - 1), always) * 86_400),
   };
 }
 

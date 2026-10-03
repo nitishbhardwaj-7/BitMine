@@ -14,6 +14,14 @@ export interface EconomicsSettings {
   referralCapSatsPerDay: number;
   /** 0 = every withdrawal needs admin approval. */
   withdrawalAutoApproveMaxSats: number;
+  /**
+   * Daily-start rule: all mining (paid miners included) stops at the user's
+   * local midnight and only earns again once the day's session is started.
+   * Absent/false = the launch rule (paid miners run around the clock).
+   */
+  dailyStartRequired?: boolean;
+  /** Rewarded videos AdMob must confirm before a day's session starts (0 = a tap is enough). */
+  startAds?: number;
 }
 
 export const DEFAULT_ECONOMICS: EconomicsSettings = {

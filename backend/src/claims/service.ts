@@ -16,14 +16,14 @@ import { Claim, Miner, Product, Session, SuperEntitlement } from "../models/inde
 import { AppError, notFound } from "../lib/errors.js";
 import { logger } from "../lib/logger.js";
 import { getEconomics } from "../settings/economics.js";
-import { claimCount, currentSession } from "../mining/sessions.js";
+import { claimCount, currentSession, sessionActive } from "../mining/sessions.js";
 import type { SsvReward } from "./admobSsv.js";
 
 export const CLAIM_TTL_MS = 10 * 60 * 1000;
 export const MAX_OPEN_CLAIMS = 3;
 const REGULAR_TRACK = "regular";
 
-export type ClaimRequest = { kind: "regular" } | { kind: "super"; tier: string };
+export type ClaimRequest = { kind: "regular" } | { kind: "super"; tier: string } | { kind: "start" };
 
 interface Track {
   track: string;
@@ -32,7 +32,7 @@ interface Track {
   tierProductId?: Types.ObjectId;
 }
 
-async function resolveTrack(userId: Types.ObjectId, req: ClaimRequest, now: number): Promise<Track> {
+async function resolveTrack(userId: Types.ObjectId, req: Exclude<ClaimRequest, { kind: "start" }>, now: number): Promise<Track> {
   if (req.kind === "regular") {
     const s = await getEconomics(new Date(now));
     return { track: REGULAR_TRACK, gh: s.claimGh, cap: s.claimsPerDay };
@@ -51,6 +51,25 @@ function openPendingFilter(userId: Types.ObjectId, now: number) {
 export async function createClaimIntent(userId: Types.ObjectId, req: ClaimRequest, now = Date.now()) {
   const session = await currentSession(userId, now);
   if (!session) throw new AppError(409, "session_not_started", "Tap Start mining first.");
+
+  if (req.kind === "start") {
+    // A video that counts towards starting today's mining; it adds no hashpower itself.
+    if (sessionActive(session, now)) throw new AppError(409, "already_started", "Mining is already running today.");
+    if ((await Claim.countDocuments(openPendingFilter(userId, now))) >= MAX_OPEN_CLAIMS) {
+      throw new AppError(429, "too_many_pending", "Finish the video you already opened, then try again.");
+    }
+    const claim = await Claim.create({ userId, kind: "start", gh: 0, localDate: session.localDate, expiresAt: new Date(now + CLAIM_TTL_MS) });
+    return {
+      claimId: String(claim._id),
+      kind: "start" as const,
+      gh: 0,
+      expiresAt: claim.expiresAt.toISOString(),
+      remainingToday: Math.max(0, (session.adsRequired ?? 0) - (session.adsWatched ?? 0) - 1),
+    };
+  }
+  if (!sessionActive(session, now)) {
+    throw new AppError(409, "session_not_started", "Start today's mining first.");
+  }
 
   const t = await resolveTrack(userId, req, now);
 
@@ -112,6 +131,8 @@ export async function cancelClaim(userId: Types.ObjectId, claimId: string) {
 
 export type SsvOutcome =
   | { result: "granted"; minerId: string }
+  /** A start video was counted; `active` is true when it was the last one and mining is now on. */
+  | { result: "counted"; active: boolean }
   | { result: "duplicate" }
   | { result: "ignored"; reason: string };
 
@@ -159,6 +180,8 @@ export async function verifySsvReward(reward: SsvReward, now = Date.now()): Prom
     await markClaim(claim._id, "expired");
     return { result: "ignored", reason: "day_over" };
   }
+
+  if (claim.kind === "start") return verifyStartAd(claim, session._id, reward, now);
 
   let cap: number;
   let track: string;
@@ -228,6 +251,66 @@ export async function verifySsvReward(reward: SsvReward, now = Date.now()): Prom
       return { result: "duplicate" };
     }
     // Same AdMob transaction reused on another claim: a replay.
+    if ((err as { code?: number }).code === 11000) return { result: "duplicate" };
+    throw err;
+  } finally {
+    await tx.endSession();
+  }
+}
+
+/**
+ * A verified "start" video: counts towards today's start, and the one that
+ * completes the count switches the day's mining on. The conditional $inc keeps
+ * the count exact with concurrent callbacks.
+ */
+async function verifyStartAd(
+  claim: { _id: Types.ObjectId },
+  sessionId: Types.ObjectId,
+  reward: SsvReward,
+  now: number,
+): Promise<SsvOutcome> {
+  const tx = await mongoose.startSession();
+  try {
+    let active = false;
+    await tx.withTransaction(async () => {
+      const counted = await Session.updateOne(
+        { _id: sessionId, activatedAt: null, $expr: { $lt: ["$adsWatched", "$adsRequired"] } },
+        { $inc: { adsWatched: 1 } },
+        { session: tx },
+      );
+      if (counted.modifiedCount !== 1) throw new Abort("already_started");
+
+      const marked = await Claim.updateOne(
+        { _id: claim._id, status: "pending" },
+        {
+          $set: {
+            status: "verified",
+            "admob.transactionId": reward.transactionId,
+            "admob.adUnit": reward.adUnit,
+            "admob.rewardItem": reward.rewardItem,
+            "admob.verifiedAt": new Date(now),
+          },
+        },
+        { session: tx },
+      );
+      if (marked.modifiedCount !== 1) throw new Abort("concurrent_verify");
+
+      const started = await Session.updateOne(
+        { _id: sessionId, activatedAt: null, $expr: { $gte: ["$adsWatched", "$adsRequired"] } },
+        { $set: { activatedAt: new Date(now) } },
+        { session: tx },
+      );
+      active = started.modifiedCount === 1;
+    });
+    return { result: "counted", active };
+  } catch (err) {
+    if (err instanceof Abort) {
+      if (err.reason === "already_started") {
+        await markClaim(claim._id, "rejected");
+        return { result: "ignored", reason: "already_started" };
+      }
+      return { result: "duplicate" };
+    }
     if ((err as { code?: number }).code === 11000) return { result: "duplicate" };
     throw err;
   } finally {

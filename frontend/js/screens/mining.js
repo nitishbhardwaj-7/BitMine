@@ -12,7 +12,7 @@ import { state, refresh, loadKeyed } from '../store.js';
 import { fmtHash, fmtSats, fmtSatsAuto, fmtUsd, fmtDate } from '../format.js';
 import { config } from '../config.js';
 import { isNative, platform, showRewardedAd, buyProduct, storePrices } from '../native.js';
-import { claimTracksHTML, countdownText, minerCard, minerStatus, minerDays } from './parts.js';
+import { claimTracksHTML, countdownText, minerCard, minerStatus, minerDays, startHint, startLabel } from './parts.js';
 import { btcUsd } from '../store.js';
 
 // ── Boost ─────────────────────────────────────────────────────────────────
@@ -25,7 +25,7 @@ function boostScreen() {
       <div class="screen-content-padding" style="gap: 14px;">
         <div class="miner-hero-showcase" style="padding: 18px;">
           <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-            <span class="badge-status ${s.session ? 'active' : 'inactive'}"><span class="dot"></span> ${s.session ? 'Session active' : 'Not started today'}</span>
+            <span class="badge-status ${s.mining ? 'active' : 'inactive'}"><span class="dot"></span> ${s.session?.active ? (s.mining ? 'Mining until midnight' : 'Started today') : 'Not started today'}</span>
             <span class="reset-chip" style="background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.2);">${icons.clock}<span data-live="countdown">${countdownText()}</span></span>
           </div>
           <div style="margin-top: 14px; text-align: center;">
@@ -33,7 +33,7 @@ function boostScreen() {
             <h3 style="font-size: 30px; font-weight: 800; margin-top: 4px;" class="live-gh">${fmtHash(s.gh.total)}</h3>
             <p style="font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 4px;">≈ <span data-live="per-day">${fmtSatsAuto(s.msatPerSecond * 86_400)}</span> per day at this rate</p>
           </div>
-          ${s.session ? '' : `<button class="btn-white" style="margin-top: 14px; width: 100%; padding: 11px;" data-act="start-mining">Start mining</button>`}
+          ${s.session?.active ? '' : `<p style="font-size: 12px; color: rgba(255,255,255,0.78); margin-top: 12px; text-align: center;">${startHint()}</p><button class="btn-white" style="margin-top: 10px; width: 100%; padding: 11px;" data-act="start-mining">${startLabel()} mining</button>`}
         </div>
 
         <div class="stat-mini-row">
@@ -85,7 +85,7 @@ function minersScreen() {
             ? state.errors.miners ? errorCard(state.errors.miners, 'reload') : skeleton(4)
             : shown.length
               ? shown.map((m) => minerCard(m)).join('')
-              : emptyState(miners.length ? 'Nothing here' : 'No paid miners yet', miners.length ? 'No miners match this filter.' : `Paid miners add hashpower around the clock for ${minerDays()} days, no claiming needed.`, `<button class="btn-primary" data-go="store">Browse miners</button>`)}
+              : emptyState(miners.length ? 'Nothing here' : 'No paid miners yet', miners.length ? 'No miners match this filter.' : `Paid miners add their hashpower for ${minerDays()} days, no claiming needed.`, `<button class="btn-primary" data-go="store">Browse miners</button>`)}
         </div>
       </div>
     </div>`;
@@ -110,13 +110,13 @@ function minerDetailsScreen(ctx) {
           <div style="margin-top: 10px;">
             <div style="margin-bottom: 8px;">${minerStatus(d)}</div>
             <h3 style="font-size: 20px; font-weight: 800;">${esc(d.product?.name ?? 'Miner')}</h3>
-            <p style="font-size: 12px; color: rgba(255, 255, 255, 0.7); margin-top: 4px;">${d.status === 'active' ? 'Mining 24/7. Earnings are credited every hour.' : d.status === 'revoked' ? 'This miner stopped when its purchase was refunded.' : `This miner has completed its ${days} days.`}</p>
+            <p style="font-size: 12px; color: rgba(255, 255, 255, 0.7); margin-top: 4px;">${d.status === 'active' ? (state.status?.dailyStartRequired ? 'Mines every day you start mining. Earnings are credited every hour.' : 'Mining 24/7. Earnings are credited every hour.') : d.status === 'revoked' ? 'This miner stopped when its purchase was refunded.' : `This miner has completed its ${days} days.`}</p>
           </div>
         </div>
 
         <div class="miner-details-grid">
           <div class="bm-stat-card"><span class="text-xs text-muted" style="font-weight: 600; text-transform: uppercase;">Hashrate</span><strong style="font-size: 18px; font-weight: 800; color: var(--text-primary);">${fmtHash(d.gh)}</strong></div>
-          <div class="bm-stat-card"><span class="text-xs text-muted" style="font-weight: 600; text-transform: uppercase;">Per day</span><strong style="font-size: 18px; font-weight: 800; color: var(--text-primary);">${fmtSats(d.status === 'active' ? d.msatPerDay : 0)}</strong></div>
+          <div class="bm-stat-card"><span class="text-xs text-muted" style="font-weight: 600; text-transform: uppercase;">Per full day</span><strong style="font-size: 18px; font-weight: 800; color: var(--text-primary);">${fmtSats(d.status === 'active' ? d.msatPerDay : 0)}</strong></div>
           <div class="bm-stat-card"><span class="text-xs text-muted" style="font-weight: 600; text-transform: uppercase;">Mined so far</span><strong style="font-size: 18px; font-weight: 800; color: var(--text-primary);">${fmtSats(d.earnedMsat)}</strong></div>
           <div class="bm-stat-card"><span class="text-xs text-muted" style="font-weight: 600; text-transform: uppercase;">Time left</span><strong style="font-size: 18px; font-weight: 800; color: ${d.status === 'active' ? 'var(--color-success)' : 'var(--text-secondary)'};">${d.status === 'active' ? `${d.daysLeft} days` : '—'}</strong></div>
         </div>
@@ -131,7 +131,7 @@ function minerDetailsScreen(ctx) {
 
         <div class="bm-card"><div class="info-rows">
           <div class="info-row"><span>Mined so far (USD)</span><strong>${fmtUsd(d.earnedMsat, btcUsd())}</strong></div>
-          <div class="info-row"><span>Expected over ${days} days</span><strong>${fmtSats(d.expectedTotalMsat)}</strong></div>
+          <div class="info-row"><span>Up to, over ${days} days</span><strong>${fmtSats(d.expectedTotalMsat)}</strong></div>
           <div class="info-row"><span>Started</span><strong>${fmtDate(d.startAt)}</strong></div>
           <div class="info-row"><span>Ends</span><strong>${fmtDate(d.endAt)}</strong></div>
         </div></div>
@@ -160,18 +160,18 @@ function storeScreen() {
       ${header('Store')}
       <div class="screen-content-padding" style="gap: 14px;">
         ${products == null ? (state.errors.products ? errorCard(state.errors.products, 'reload') : skeleton(5)) : `
-        <div class="section-header-row"><span class="section-title">Paid miners</span><span class="text-xs text-muted" style="font-weight: 600;">${minerDays()} days · 24/7 · renewable</span></div>
+        <div class="section-header-row"><span class="section-title">Paid miners</span><span class="text-xs text-muted" style="font-weight: 600;">${minerDays()} days · renewable</span></div>
         ${miners.map((p, i) => `
           <div class="product-card ${i === miners.length - 1 ? 'featured' : ''}">
             <div class="product-head">
               <div style="display: flex; gap: 12px; align-items: center;">
                 <div class="promo-miner-thumb" style="width: 48px; height: 48px;"><img src="./assets/images/miner_rig_3d.jpg" alt=""/></div>
-                <div><h4>${esc(p.name)}</h4><p>${fmtHash(p.gh)} · mines around the clock</p></div>
+                <div><h4>${esc(p.name)}</h4><p>${fmtHash(p.gh)} · ${state.status?.dailyStartRequired ? 'mines every day you start' : 'mines around the clock'}</p></div>
               </div>
               <span class="product-price">${esc(priceOf(p))}</span>
             </div>
             <div class="product-facts">
-              <span class="product-fact">≈ ${fmtSats(p.gh * rate)} / day</span>
+              <span class="product-fact">up to ${fmtSats(p.gh * rate)} / day</span>
               <span class="product-fact">${p.durationDays} days</span>
               <span class="product-fact">Stacks with other miners</span>
             </div>
@@ -242,53 +242,76 @@ async function waitForClaim(claimId) {
   return 'pending';
 }
 
+/**
+ * Creates a claim, plays its rewarded video and waits for AdMob to confirm it to
+ * our server. Resolves { intent, status } where status is the server's claim
+ * status ('verified', 'pending', ...), or 'skipped' (video closed early) or
+ * 'unsupported' (a browser without test mode). A claim that doesn't end in a
+ * watched video is handed back so it doesn't block the next attempt.
+ */
+async function watchAd(body) {
+  const intent = await post('/v1/claims', body);
+  const giveBack = () => post(`/v1/claims/${intent.claimId}/cancel`).catch(() => undefined);
+
+  if (isNative) {
+    const adUnitId = state.config?.adUnits?.[platform]?.rewarded;
+    if (!adUnitId) {
+      await giveBack();
+      throw new ApiError(0, 'ads_unavailable', 'Videos are unavailable right now. Please try again later.');
+    }
+    let watched = false;
+    try {
+      watched = await showRewardedAd({ adUnitId, userId: state.me.id, claimId: intent.claimId, testDevices: state.config?.admobTestDevices ?? [] });
+    } catch (err) {
+      await giveBack();
+      throw new ApiError(0, 'ad_failed', 'No video is available right now. Please try again in a moment.');
+    }
+    if (!watched) {
+      await giveBack();
+      return { intent, status: 'skipped' };
+    }
+    // Development phone builds: Google's callback can't reach a PC on the local
+    // network, so the dev shortcut confirms the watched ad instead.
+    if (config.devShortcuts) await post(`/v1/dev/claims/${intent.claimId}/complete`).catch(() => undefined);
+  } else if (config.devShortcuts) {
+    openSheet('Test video', `<div class="stack text-center"><div class="bm-spinner" style="margin: 10px auto; border-color: var(--color-lavender-border); border-top-color: var(--color-primary-purple); width: 28px; height: 28px;"></div><p class="bm-hint">Browser test mode: simulating a finished rewarded video.</p></div>`);
+    await sleep(1200);
+    closeSheet();
+    await post(`/v1/dev/claims/${intent.claimId}/complete`);
+  } else {
+    await giveBack();
+    return { intent, status: 'unsupported' };
+  }
+  return { intent, status: await waitForClaim(intent.claimId) };
+}
+
 export const actions = {
   async 'start-mining'() {
-    await post('/v1/mining/start');
-    await refresh('status');
-    toast('Mining started. Your claims are unlocked until midnight.');
+    let session = await post('/v1/mining/start');
+    // Daily-start rule: the day begins once the required videos are confirmed.
+    for (let i = 0; !session.active && i < 6; i++) {
+      const { status } = await watchAd({ kind: 'start' });
+      if (status === 'unsupported') return toast('Starting works in the BitMine phone app.', 'error');
+      await refresh('status');
+      session = state.status?.session ?? session;
+      if (status === 'skipped') return toast('Watch the whole video to start mining.', 'error');
+      if (status !== 'verified' && !session.active) {
+        return toast(status === 'pending' ? 'Still confirming your video. Tap Start again in a moment.' : "That video couldn't be confirmed. Please try again.", 'error');
+      }
+    }
+    await refresh('status', 'daily');
+    if (state.status?.session?.active) {
+      toast(state.status.dailyStartRequired ? 'Mining started. Your miners run until midnight.' : 'Mining started. Your claims are unlocked until midnight.');
+    }
   },
 
   async claim(el) {
     const kind = el.dataset.kind;
     const tier = el.dataset.tier;
-    const intent = await post('/v1/claims', kind === 'super' ? { kind, tier } : { kind });
-
-    // A claim that doesn't end in a watched ad is handed back, so it doesn't
-    // block the user's next attempt (the server allows 3 open claims).
-    const giveBack = () => post(`/v1/claims/${intent.claimId}/cancel`).catch(() => undefined);
-
-    if (isNative) {
-      const adUnitId = state.config?.adUnits?.[platform]?.rewarded;
-      if (!adUnitId) {
-        await giveBack();
-        throw new ApiError(0, 'ads_unavailable', 'Videos are unavailable right now. Please try again later.');
-      }
-      let watched = false;
-      try {
-        watched = await showRewardedAd({ adUnitId, userId: state.me.id, claimId: intent.claimId, testDevices: state.config?.admobTestDevices ?? [] });
-      } catch (err) {
-        await giveBack();
-        throw new ApiError(0, 'ad_failed', 'No video is available right now. Please try again in a moment.');
-      }
-      if (!watched) {
-        await giveBack();
-        return toast('Watch the whole video to claim.', 'error');
-      }
-      // Development phone builds: Google's callback can't reach a PC on the local
-      // network, so the dev shortcut confirms the watched ad instead.
-      if (config.devShortcuts) await post(`/v1/dev/claims/${intent.claimId}/complete`).catch(() => undefined);
-    } else if (config.devShortcuts) {
-      openSheet('Test video', `<div class="stack text-center"><div class="bm-spinner" style="margin: 10px auto; border-color: var(--color-lavender-border); border-top-color: var(--color-primary-purple); width: 28px; height: 28px;"></div><p class="bm-hint">Browser test mode: simulating a finished rewarded video.</p></div>`);
-      await sleep(1200);
-      closeSheet();
-      await post(`/v1/dev/claims/${intent.claimId}/complete`);
-    } else {
-      return toast('Claims work in the BitMine phone app.', 'error');
-    }
-
-    const status = await waitForClaim(intent.claimId);
+    const { intent, status } = await watchAd(kind === 'super' ? { kind, tier } : { kind });
     await refresh('status');
+    if (status === 'skipped') return toast('Watch the whole video to claim.', 'error');
+    if (status === 'unsupported') return toast('Claims work in the BitMine phone app.', 'error');
     if (status === 'verified') toast(`+${intent.gh} GH/s added until midnight.`);
     else if (status === 'pending') toast("Still confirming your video. It'll appear in a moment.");
     else toast("That video couldn't be confirmed. Please try again.", 'error');

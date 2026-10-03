@@ -27,8 +27,8 @@ function authLayout({ title, subtitle, card, features = false, backBtn = true })
         ${subtitle ? `<p>${subtitle}</p>` : ''}
         ${features ? `
           <div class="auth-feature-list">
-            <div class="auth-feature"><div class="icon-dot">${icons.bolt}</div>Earn sats every hour, even with the app closed</div>
-            <div class="auth-feature"><div class="icon-dot">${icons.miner}</div>Free daily claims, Super Miner and 24/7 paid miners</div>
+            <div class="auth-feature"><div class="icon-dot">${icons.bolt}</div>Start once a day, earn sats every hour</div>
+            <div class="auth-feature"><div class="icon-dot">${icons.miner}</div>Free daily claims, Super Miner and paid miners</div>
             <div class="auth-feature"><div class="icon-dot">${icons.send}</div>Withdraw over Lightning in seconds</div>
           </div>` : ''}
       </div>

@@ -23,6 +23,7 @@ const ECON_FIELDS: [keyof EconomicsSettings, string, string][] = [
   ["referralPercent", "Referral reward (%)", ""],
   ["referralCapSatsPerDay", "Referral cap (sats/day per referrer)", ""],
   ["withdrawalAutoApproveMaxSats", "Auto-approve withdrawals up to (sats)", "0 = review every withdrawal"],
+  ["startAds", "Videos to watch to start mining each day", "0 = one tap; used when the daily start is on"],
 ];
 
 async function productSeeds(): Promise<ProductSeed[]> {
@@ -45,22 +46,24 @@ export function configPages() {
     tomorrow.setUTCHours(0, 0, 0, 0);
     page(req, res, "Economics", html`<h1>Economics</h1>
       <div class="card"><h2>In force now (v${current.version})</h2>
-        <table>${ECON_FIELDS.map(([k, label]) => html`<tr><td>${label}</td><td class="num">${current[k]}</td></tr>`)}</table>
+        <table>${ECON_FIELDS.map(([k, label]) => html`<tr><td>${label}</td><td class="num">${current[k] ?? 0}</td></tr>`)}<tr><td>Mining stops at midnight until the user starts it again</td><td class="num">${current.dailyStartRequired ? "yes" : "no (paid miners run 24/7)"}</td></tr></table>
         <p>15-day check: one Titan + all claims + Super Miner Max reaches the minimum in <b>${days.toFixed(1)} days</b> ${statusPill(days >= 15 ? "active" : "failed")}</p></div>
       <div class="card"><h2>Schedule a change</h2>
         <p class="muted">Changes only apply from the time you choose, so past mining is never repriced. Times are UTC.</p>
         <form method="post" action="/admin/settings" class="form">${csrfField(req.admin!.csrf)}
-          ${ECON_FIELDS.map(([k, label, hint]) => html`<label>${label}${hint ? ` (${hint})` : ""}<input name="${k}" value="${current[k]}" required></label>`)}
+          ${ECON_FIELDS.map(([k, label, hint]) => html`<label>${label}${hint ? ` (${hint})` : ""}<input name="${k}" value="${current[k] ?? 0}" required></label>`)}
+          <label>Daily start<select name="dailyStartRequired"><option value="1" ${current.dailyStartRequired ? "selected" : ""}>All mining stops at midnight until the user starts it again</option><option value="0" ${current.dailyStartRequired ? "" : "selected"}>Off: paid miners mine around the clock</option></select></label>
           <label>Takes effect (UTC)<input type="datetime-local" name="effectiveAt" value="${tomorrow.toISOString().slice(0, 16)}" required></label>
           <label><span><input type="checkbox" name="confirmGuard" value="yes"> Allow even if the 15-day check fails</span></label>
           <button class="btn">Schedule</button></form></div>
-      <div class="card"><h2>History</h2><table><tr><th>Version</th><th>From</th>${ECON_FIELDS.map(([, label]) => html`<th>${label.split(" (")[0]}</th>`)}</tr>
-        ${versions.map((v) => html`<tr><td>v${v.version}</td><td>${dt(v.effectiveAt)}</td>${ECON_FIELDS.map(([k]) => html`<td class="num">${v.values[k]}</td>`)}</tr>`)}</table></div>`);
+      <div class="card"><h2>History</h2><table><tr><th>Version</th><th>From</th>${ECON_FIELDS.map(([, label]) => html`<th>${label.split(" (")[0]}</th>`)}<th>Daily start</th></tr>
+        ${versions.map((v) => html`<tr><td>v${v.version}</td><td>${dt(v.effectiveAt)}</td>${ECON_FIELDS.map(([k]) => html`<td class="num">${v.values[k] ?? 0}</td>`)}<td>${v.values.dailyStartRequired ? "yes" : "no"}</td></tr>`)}</table></div>`);
   });
 
   r.post("/settings", action(async (req, res) => {
     const values = Object.fromEntries(ECON_FIELDS.map(([k]) => [k, num(req, k)])) as unknown as EconomicsSettings;
-    for (const k of ["claimsPerDay", "minWithdrawalSats", "withdrawalAutoApproveMaxSats"] as const) {
+    values.dailyStartRequired = f(req, "dailyStartRequired") === "1";
+    for (const k of ["claimsPerDay", "minWithdrawalSats", "withdrawalAutoApproveMaxSats", "startAds"] as const) {
       if (!Number.isInteger(values[k])) throw new AppError(400, "invalid_number", `${k} must be a whole number.`);
     }
     const effectiveAt = new Date(`${f(req, "effectiveAt")}:00Z`);

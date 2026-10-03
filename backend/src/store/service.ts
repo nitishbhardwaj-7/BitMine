@@ -19,6 +19,7 @@ import { MS_PER_DAY } from "../lib/time.js";
 import { ensureBalance } from "../wallet/balances.js";
 import { getRateSchedule } from "../settings/economics.js";
 import { earnedMsat } from "../mining/accrual.js";
+import { loadWindows } from "../mining/sessions.js";
 import type { RevenueCatClient, StoreTransaction } from "./revenuecat.js";
 
 export interface StoreDeps {
@@ -169,7 +170,8 @@ async function backfill(
   if (span.startAt >= accruedUntil) return;
 
   const schedule = await getRateSchedule();
-  const msat = Math.floor(earnedMsat([span], schedule, span.startAt, accruedUntil));
+  const windows = await loadWindows(userId, span.startAt, accruedUntil, tx);
+  const msat = Math.floor(earnedMsat([span], schedule, span.startAt, accruedUntil, windows));
   if (msat <= 0) return;
   await Ledger.create(
     [

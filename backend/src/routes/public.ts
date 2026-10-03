@@ -58,6 +58,8 @@ export function publicRouter(opts: { market?: MarketCache } = {}) {
         minWithdrawalSats: eco.minWithdrawalSats,
         referralPercent: eco.referralPercent,
         referralCapSatsPerDay: eco.referralCapSatsPerDay,
+        dailyStartRequired: Boolean(eco.dailyStartRequired),
+        startAds: eco.dailyStartRequired ? (eco.startAds ?? 0) : 0,
       },
     });
   });

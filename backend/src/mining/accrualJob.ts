@@ -21,6 +21,7 @@ import { floorHour, MS_PER_HOUR } from "../lib/time.js";
 import { logger } from "../lib/logger.js";
 import { getRateSchedule } from "../settings/economics.js";
 import { earnedMsat, toWholeMsat, type MinerSpan, type RatePeriod } from "./accrual.js";
+import { loadWindows } from "./sessions.js";
 
 /** Upper bound on hours credited for one user per run (keeps a run bounded after downtime). */
 const MAX_HOURS_PER_RUN = 24 * 14;
@@ -108,10 +109,13 @@ async function accrueUser(
         revokedAt: m.revokedAt ? m.revokedAt.getTime() : null,
       }));
 
+      // Daily-start rule: hashpower only earns while the day's session is on.
+      const windows = miners.length && schedule.some((p) => p.gated) ? await loadWindows(userId, from, until, session) : [];
+
       const entries: { hour: number; creditMsat: number }[] = [];
       let carry = bal.accrualRemainder ?? 0;
       for (let h = from; h < until; h += MS_PER_HOUR) {
-        const exact = miners.length ? earnedMsat(miners, schedule, h, h + MS_PER_HOUR) : 0;
+        const exact = miners.length ? earnedMsat(miners, schedule, h, h + MS_PER_HOUR, windows) : 0;
         const { creditMsat, remainder: next } = toWholeMsat(exact, carry);
         carry = next;
         if (creditMsat > 0) entries.push({ hour: h, creditMsat });

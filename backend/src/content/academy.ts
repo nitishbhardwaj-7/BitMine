@@ -32,11 +32,11 @@ Bitcoin can be split into tiny pieces. The smallest unit is a satoshi, or "sat":
     image: "miner_rig_3d",
     body: `In BitMine, your mining power is measured in hashpower: GH/s (gigahashes per second) and TH/s (1 TH/s = 1,000 GH/s). The more hashpower you have, the more sats you earn.
 
-Your total hashpower is the sum of your miners. Free claims add 5.5 GH/s each. Super Miner tiers add their own claims. Paid miners add hashpower around the clock for 30 days, and you can renew them.
+Your total hashpower is the sum of your miners. Free claims add 5.5 GH/s each. Super Miner tiers add their own claims. Paid miners add their hashpower for 30 days, and you can renew them.
 
-BitMine credits your earnings to your balance every hour. You don't need to keep the app open: once your miners are running, the sats keep arriving.
+BitMine credits your earnings to your balance every hour. After you start the day you don't need to keep the app open: the sats keep arriving until midnight.
 
-Each day, tap Start mining to open that day's session. It unlocks your claims until midnight in your time zone, when claimed hashpower resets for the next day. Paid miners don't need a daily start.`,
+All mining stops at midnight in your time zone. Each day, tap Start mining and watch a couple of short videos: that switches every miner you own back on and unlocks your claims until the next midnight. Starting earlier in the day earns more.`,
   },
   {
     slug: "claims-and-super-miner",
@@ -52,7 +52,7 @@ Claims made early in the day mine for longer, because claimed hashpower runs unt
 
 Super Miner tiers add a separate set of claims on top: Super Miner (30 claims of 5.5 GH/s), Pro (50 of 10 GH/s) and Max (50 of 20 GH/s, up to 1 TH/s a day). Tiers can be combined.
 
-Paid miners are the way to earn without claiming. They mine 24/7 for 30 days, you can renew them any time, and you can own as many as you like.`,
+Paid miners are the way to earn without claiming. Once you've started the day they mine until midnight, for 30 days; you can renew them any time and own as many as you like.`,
   },
   {
     slug: "lightning-withdrawals",

@@ -7,13 +7,13 @@ export const FAQ_SEEDS = [
     seedKey: "how-mining-works",
     question: "How does mining work in BitMine?",
     answer:
-      "Your miners add up to your total hashpower (GH/s). BitMine credits sats to your balance every hour based on that hashpower. You don't need to keep the app open.",
+      "Your miners add up to your total hashpower (GH/s). Each day you start mining, and BitMine then credits sats to your balance every hour until midnight. You don't need to keep the app open after starting.",
   },
   {
     seedKey: "start-mining",
     question: "Why do I need to tap Start mining every day?",
     answer:
-      "Starting today's session unlocks your free claims. Paid miners keep mining around the clock without it.",
+      "All mining stops at midnight in your time zone. Tapping Start mining and watching a couple of short videos switches every miner you own back on until the next midnight, and unlocks your free claims.",
   },
   {
     seedKey: "claims",
@@ -47,7 +47,7 @@ export const FAQ_SEEDS = [
   {
     seedKey: "paid-miners",
     question: "How long do paid miners last?",
-    answer: "Paid miners mine for 30 days from purchase, 24 hours a day. Renew a miner by buying it again, and own as many as you like.",
+    answer: "Paid miners last 30 days from purchase and mine every day you start mining. Renew a miner by buying it again, and own as many as you like.",
   },
 ];
 

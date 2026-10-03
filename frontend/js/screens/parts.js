@@ -136,6 +136,25 @@ export function tickerHTML() {
     </div>`;
 }
 
+// ── starting the day ──────────────────────────────────────────────────────
+/** Start videos still owed today (0 when a tap is enough or the day is already on). */
+export function startVideosLeft() {
+  const s = state.status;
+  if (!s?.dailyStartRequired) return 0;
+  if (s.session) return s.session.active ? 0 : Math.max(0, s.session.adsRequired - s.session.adsWatched);
+  return state.config?.economics?.startAds ?? 0;
+}
+/** One line explaining what Start does right now. */
+export function startHint() {
+  const s = state.status;
+  if (!s?.dailyStartRequired) return `Unlock ${s?.claims.cap ?? 60} free claims until midnight.`;
+  const n = startVideosLeft();
+  if (n === 0) return 'Switch your miners on until midnight.';
+  if (s.session?.adsWatched) return `${n} more video${n === 1 ? '' : 's'} to switch your miners on.`;
+  return `Watch ${n} short video${n === 1 ? '' : 's'} to switch your miners on until midnight.`;
+}
+export const startLabel = () => (state.status?.session && !state.status.session.active && state.status.session.adsWatched ? 'Continue' : 'Start');
+
 // ── miners ────────────────────────────────────────────────────────────────
 /** How long a paid miner runs (from the catalog; 30 days unless an admin changes it). */
 export const minerDays = (sku) =>
@@ -164,7 +183,7 @@ export function minerCard(m, compact = false) {
           ${compact ? '' : `<div class="icon-box-purple sm">${icons.miner}</div>`}
           <div>
             <h4>${esc(name)}</h4>
-            <p>${m.status === 'active' ? `Mining 24/7 · ends ${new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : `Ran ${new Date(start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}</p>
+            <p>${m.status === 'active' ? `${state.status?.dailyStartRequired ? (state.status.mining ? "Mining now" : "Not started today") : "Mining 24/7"} · ends ${new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : `Ran ${new Date(start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}</p>
           </div>
         </div>
         ${minerStatus(m)}
@@ -218,7 +237,7 @@ export function claimTrack({ title, sub, used, cap, gh, kind, tier, locked, sess
 export function claimTracksHTML({ includeLocked = false } = {}) {
   const s = state.status;
   if (!s) return '';
-  const active = Boolean(s.session);
+  const active = Boolean(s.session?.active);
   const tracks = [
     claimTrack({ title: 'Free claims', sub: `Watch a short video · +${s.claims.gh} GH/s until midnight`, used: s.claims.used, cap: s.claims.cap, gh: s.claims.gh, kind: 'regular', sessionActive: active }),
     ...s.superTiers.map((t) =>

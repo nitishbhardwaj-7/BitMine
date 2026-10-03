@@ -1,7 +1,7 @@
 import { Router, type Request } from "express";
 import { z } from "zod";
 import { requireUser } from "../auth/requireUser.js";
-import { startSession } from "../mining/sessions.js";
+import { sessionView, startSession } from "../mining/sessions.js";
 import { getMiningStatus, listMiners, minerDetail } from "../mining/status.js";
 import { cancelClaim, createClaimIntent, getClaim } from "../claims/service.js";
 import { listProducts, listPurchases, syncFromApp, type StoreDeps } from "../store/service.js";
@@ -27,6 +27,7 @@ import {
 const claimBody = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("regular") }),
   z.object({ kind: z.literal("super"), tier: z.string().min(1).max(40) }),
+  z.object({ kind: z.literal("start") }),
 ]);
 
 const sixDigits = z.string().trim().regex(/^\d{6}$/, "6-digit code");
@@ -99,7 +100,7 @@ export function v1Router(opts: { jwtAccessSecret: string; store: StoreDeps; mail
 
   r.post("/mining/start", async (req, res) => {
     const s = await startSession(uid(req));
-    res.json({ localDate: s!.localDate, startedAt: s!.startedAt.toISOString(), endsAt: s!.endsAt.toISOString() });
+    res.json(sessionView(s));
   });
 
   r.get("/miners", async (req, res) => {
