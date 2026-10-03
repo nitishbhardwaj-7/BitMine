@@ -19,7 +19,8 @@
     "db:status": "tsx src/scripts/db-status.ts",
     "admin:create": "tsx src/scripts/create-admin.ts",
     "news:refresh": "tsx src/scripts/refresh-news.ts",
-    "email:test": "tsx src/scripts/test-email.ts"
+    "email:test": "tsx src/scripts/test-email.ts",
+    "migrate:monthly": "tsx src/scripts/migrate-monthly-miners.ts"
   },
   "dependencies": {
     "cors": "^2.8.6",

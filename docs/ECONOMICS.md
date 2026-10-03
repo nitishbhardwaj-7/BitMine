@@ -13,21 +13,21 @@ Stacking several packs **may** reach it faster; that's intended (no paid cap).
 | Mining rate | **0.048 sats / GH/s / day** (admin-editable) |
 | Free ad claims | **5.5 GH/s × 60 claims/day** = max 330 GH/s. Resets at the user's local midnight. Available to paid users too. |
 | Super Miner | Paid unlock **$4.99 / 30 days**: +30 claims/day × 5.5 GH/s = up to **165 GH/s**. Resets at midnight. |
-| Super Miner Pro | **$49 / 365 days** (length to confirm): +50 claims/day × 10 GH/s = up to **500 GH/s** |
-| Super Miner Max | **$99 / 365 days** (length to confirm): +50 claims/day × 20 GH/s = up to **1 TH/s** |
+| Super Miner Pro | **$49 / 365 days**: +50 claims/day × 10 GH/s = up to **500 GH/s** |
+| Super Miner Max | **$249 / 365 days**: +50 claims/day × 20 GH/s = up to **1 TH/s** |
 | Super tiers | Each tier is its own claim track; tiers stack; rebuying extends |
 | Paid cap | **None.** Packs stack freely |
 | Referral | 5% of friend's mining, capped at **5 sats/day** per referrer |
 | Min withdrawal | **2,500 sats** (0.000025 BTC) |
 
-## Paid miners (180 days, mine 24/7)
-| Pack | Price | GH/s | Sats/day | Total over 180 days | % of price |
+## Paid miners (30 days, mine 24/7, renewed by buying again; changed from 180 days on 2026-10-03)
+| Pack | Price | GH/s | Sats/day | Total over 30 days | % of price |
 |---|---|---|---|---|---|
-| Mini Miner | $1.99 | 65 | 3.1 | 562 | 28% |
-| Spark | $4.99 | 170 | 8.2 | 1,469 | 29% |
-| Core | $9.99 | 360 | 17.3 | 3,110 | 31% |
-| Forge | $19.99 | 760 | 36.5 | 6,566 | 33% |
-| Titan | $49.99 | 2,000 | 96 | 17,280 | 35% |
+| Mini Miner | $1.99 | 65 | 3.1 | 94 | 4.7% |
+| Spark | $4.99 | 170 | 8.2 | 245 | 4.9% |
+| Core | $9.99 | 360 | 17.3 | 518 | 5.2% |
+| Forge | $19.99 | 760 | 36.5 | 1,094 | 5.5% |
+| Titan | $49.99 | 2,000 | 96 | 2,880 | 5.8% |
 
 ## Days to reach 2,500 sats (worst case: every claim mines 24h)
 | User | Sats/day | Days |
@@ -35,7 +35,7 @@ Stacking several packs **may** reach it faster; that's intended (no paid cap).
 | Titan + 60 claims + Super Miner (fastest) | 160 | **15.6** ✓ |
 | Titan only, no ads | 96 | 27 |
 | Free + Super Miner ($4.99), maxed | 23.8 | 105 |
-| Free + Super Miner Max ($99), maxed | 63.8 | 40 |
+| Free + Super Miner Max ($249), maxed | 63.8 | 40 |
 | Free, 60 claims/day | 15.8 | 158 |
 
 Real users claim throughout the day, so claimed GH/s mines less than 24h and actual days are longer.

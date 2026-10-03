@@ -22,7 +22,7 @@ beforeEach(async () => {
 });
 
 describe("store", () => {
-  it("a Titan purchase becomes a 2,000 GH/s miner for 180 days", async () => {
+  it("a Titan purchase becomes a 2,000 GH/s miner for 30 days", async () => {
     const rc = fakeRevenueCat();
     const userId = await createUser();
     rc.buy(userId, TITAN, NOW - 5000);
@@ -33,7 +33,7 @@ describe("store", () => {
     const miner = await Miner.findOne({ userId, source: "paid" }).lean();
     expect(miner).toMatchObject({ gh: 2000 });
     expect(miner!.startAt.getTime()).toBe(NOW - 5000);
-    expect(miner!.endAt.getTime()).toBe(NOW - 5000 + 180 * MS_PER_DAY);
+    expect(miner!.endAt.getTime()).toBe(NOW - 5000 + 30 * MS_PER_DAY);
   });
 
   it("syncing again, or the webhook and the app racing, grants once", async () => {

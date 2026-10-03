@@ -42,15 +42,17 @@ export interface ProductSeed {
   sortOrder: number;
 }
 
+// Paid miners last 30 days and are renewed by buying the pack again (each purchase is its
+// own miner, so renewing early stacks). Only Super Miner Pro and Max run for 365 days.
 export const PRODUCT_SEEDS: ProductSeed[] = [
-  { sku: "miner_mini", kind: "miner", name: "Mini Miner", priceDisplayUsd: 1.99, gh: 65, durationDays: 180, sortOrder: 10 },
-  { sku: "miner_spark", kind: "miner", name: "Spark", priceDisplayUsd: 4.99, gh: 170, durationDays: 180, sortOrder: 20 },
-  { sku: "miner_core", kind: "miner", name: "Core", priceDisplayUsd: 9.99, gh: 360, durationDays: 180, sortOrder: 30 },
-  { sku: "miner_forge", kind: "miner", name: "Forge", priceDisplayUsd: 19.99, gh: 760, durationDays: 180, sortOrder: 40 },
-  { sku: "miner_titan", kind: "miner", name: "Titan", priceDisplayUsd: 49.99, gh: 2000, durationDays: 180, sortOrder: 50 },
+  { sku: "miner_mini", kind: "miner", name: "Mini Miner", priceDisplayUsd: 1.99, gh: 65, durationDays: 30, sortOrder: 10 },
+  { sku: "miner_spark", kind: "miner", name: "Spark", priceDisplayUsd: 4.99, gh: 170, durationDays: 30, sortOrder: 20 },
+  { sku: "miner_core", kind: "miner", name: "Core", priceDisplayUsd: 9.99, gh: 360, durationDays: 30, sortOrder: 30 },
+  { sku: "miner_forge", kind: "miner", name: "Forge", priceDisplayUsd: 19.99, gh: 760, durationDays: 30, sortOrder: 40 },
+  { sku: "miner_titan", kind: "miner", name: "Titan", priceDisplayUsd: 49.99, gh: 2000, durationDays: 30, sortOrder: 50 },
   { sku: "super_basic", kind: "super_miner", name: "Super Miner", priceDisplayUsd: 4.99, claimGh: 5.5, claimsPerDay: 30, durationDays: 30, sortOrder: 60 },
   { sku: "super_pro", kind: "super_miner", name: "Super Miner Pro", priceDisplayUsd: 49, claimGh: 10, claimsPerDay: 50, durationDays: 365, sortOrder: 70 },
-  { sku: "super_max", kind: "super_miner", name: "Super Miner Max", priceDisplayUsd: 99, claimGh: 20, claimsPerDay: 50, durationDays: 365, sortOrder: 80 },
+  { sku: "super_max", kind: "super_miner", name: "Super Miner Max", priceDisplayUsd: 249, claimGh: 20, claimsPerDay: 50, durationDays: 365, sortOrder: 80 },
 ];
 
 /**

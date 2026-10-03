@@ -12,7 +12,7 @@ import { state, refresh, loadKeyed } from '../store.js';
 import { fmtHash, fmtSats, fmtSatsAuto, fmtUsd, fmtDate } from '../format.js';
 import { config } from '../config.js';
 import { isNative, platform, showRewardedAd, buyProduct, storePrices } from '../native.js';
-import { claimTracksHTML, countdownText, minerCard, minerStatus } from './parts.js';
+import { claimTracksHTML, countdownText, minerCard, minerStatus, minerDays } from './parts.js';
 import { btcUsd } from '../store.js';
 
 // ── Boost ─────────────────────────────────────────────────────────────────
@@ -85,7 +85,7 @@ function minersScreen() {
             ? state.errors.miners ? errorCard(state.errors.miners, 'reload') : skeleton(4)
             : shown.length
               ? shown.map((m) => minerCard(m)).join('')
-              : emptyState(miners.length ? 'Nothing here' : 'No paid miners yet', miners.length ? 'No miners match this filter.' : 'Paid miners add hashpower around the clock for 180 days, no claiming needed.', `<button class="btn-primary" data-go="store">Browse miners</button>`)}
+              : emptyState(miners.length ? 'Nothing here' : 'No paid miners yet', miners.length ? 'No miners match this filter.' : `Paid miners add hashpower around the clock for ${minerDays()} days, no claiming needed.`, `<button class="btn-primary" data-go="store">Browse miners</button>`)}
         </div>
       </div>
     </div>`;
@@ -97,6 +97,10 @@ function minerDetailsScreen(ctx) {
   const err = state.errors[`minerDetail:${ctx.params.id}`];
   if (!d) return `<div class="screen-scroll-view">${header('Miner Details')}<div class="screen-content-padding">${err ? errorCard(err) : skeleton(5)}</div></div>`;
   const pct = Math.round(d.progress * 100);
+  // This miner's own length (older ones were sold with a different one), and what a renewal gives today.
+  const days = Math.round((Date.parse(d.endAt) - Date.parse(d.startAt)) / 86_400_000);
+  const canRenew = d.source === 'paid' && d.product?.sku && d.status !== 'revoked';
+  const renewDays = canRenew ? minerDays(d.product.sku) : 0;
   return `
     <div class="screen-scroll-view animate-fade-up">
       ${header('Miner Details')}
@@ -106,7 +110,7 @@ function minerDetailsScreen(ctx) {
           <div style="margin-top: 10px;">
             <div style="margin-bottom: 8px;">${minerStatus(d)}</div>
             <h3 style="font-size: 20px; font-weight: 800;">${esc(d.product?.name ?? 'Miner')}</h3>
-            <p style="font-size: 12px; color: rgba(255, 255, 255, 0.7); margin-top: 4px;">${d.status === 'active' ? 'Mining 24/7. Earnings are credited every hour.' : d.status === 'revoked' ? 'This miner stopped when its purchase was refunded.' : 'This miner has completed its 180 days.'}</p>
+            <p style="font-size: 12px; color: rgba(255, 255, 255, 0.7); margin-top: 4px;">${d.status === 'active' ? 'Mining 24/7. Earnings are credited every hour.' : d.status === 'revoked' ? 'This miner stopped when its purchase was refunded.' : `This miner has completed its ${days} days.`}</p>
           </div>
         </div>
 
@@ -127,10 +131,13 @@ function minerDetailsScreen(ctx) {
 
         <div class="bm-card"><div class="info-rows">
           <div class="info-row"><span>Mined so far (USD)</span><strong>${fmtUsd(d.earnedMsat, btcUsd())}</strong></div>
-          <div class="info-row"><span>Expected over 180 days</span><strong>${fmtSats(d.expectedTotalMsat)}</strong></div>
+          <div class="info-row"><span>Expected over ${days} days</span><strong>${fmtSats(d.expectedTotalMsat)}</strong></div>
           <div class="info-row"><span>Started</span><strong>${fmtDate(d.startAt)}</strong></div>
           <div class="info-row"><span>Ends</span><strong>${fmtDate(d.endAt)}</strong></div>
         </div></div>
+        ${canRenew ? `
+        <button class="btn-primary btn-block" data-act="buy" data-sku="${esc(d.product.sku)}">Renew ${esc(d.product.name)} · ${renewDays} days</button>
+        <p class="muted-note">Renewing starts a fresh ${esc(d.product.name)} today for ${renewDays} days.${d.status === 'active' ? ' Until this one ends, both mine together.' : ''}</p>` : ''}
         <p class="muted-note">Estimates use today's mining rate. Figures in sats are what you receive; USD values move with the Bitcoin price.</p>
       </div>
     </div>`;
@@ -153,7 +160,7 @@ function storeScreen() {
       ${header('Store')}
       <div class="screen-content-padding" style="gap: 14px;">
         ${products == null ? (state.errors.products ? errorCard(state.errors.products, 'reload') : skeleton(5)) : `
-        <div class="section-header-row"><span class="section-title">Paid miners</span><span class="text-xs text-muted" style="font-weight: 600;">180 days · 24/7</span></div>
+        <div class="section-header-row"><span class="section-title">Paid miners</span><span class="text-xs text-muted" style="font-weight: 600;">${minerDays()} days · 24/7 · renewable</span></div>
         ${miners.map((p, i) => `
           <div class="product-card ${i === miners.length - 1 ? 'featured' : ''}">
             <div class="product-head">
@@ -200,12 +207,12 @@ function storeScreen() {
 
 export const screens = {
   mining: { tab: 'home', keys: ['status', 'products', 'me'], load: (ctx) => ctx.ensure('products'), render: boostScreen },
-  miners: { tab: 'miners', keys: ['miners', 'status'], load: (ctx) => ctx.refresh('miners'), render: minersScreen },
+  miners: { tab: 'miners', keys: ['miners', 'status', 'products'], load: (ctx) => { ctx.ensure('products'); return ctx.refresh('miners'); }, render: minersScreen },
   'miner-details': {
     tab: 'miners',
     dark: false,
-    keys: ['minerDetail'],
-    load: (ctx) => loadKeyed('minerDetail', ctx.params.id),
+    keys: ['minerDetail', 'products'],
+    load: (ctx) => { ctx.ensure('products'); return loadKeyed('minerDetail', ctx.params.id); },
     render: minerDetailsScreen,
   },
   store: {
@@ -292,7 +299,8 @@ export const actions = {
     ctx.rerender();
   },
 
-  async buy(el) {
+  async buy(el, ctx) {
+    if (!state.products) await ctx.ensure('products');
     const product = state.products?.find((p) => p.sku === el.dataset.sku);
     if (!product) return;
     if (isNative) {

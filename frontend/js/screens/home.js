@@ -10,7 +10,7 @@ import { fmtHash } from '../format.js';
 import { initHeroScrollCollapse } from '../heroCollapse.js';
 import {
   tickerHTML, minerCard, claimTracksHTML, countdownText, featuredNews, newsRow, lessonRow, settlementRows,
-  liveBalanceHtml, liveSmallText, money, moneySub,
+  liveBalanceHtml, liveSmallText, money, moneySub, minerDays,
 } from './parts.js';
 
 function heroCard() {
@@ -162,7 +162,7 @@ export const screens = {
             <div class="promo-upgrade-card" data-go="store">
               <div class="promo-left">
                 <div class="promo-miner-thumb"><img src="./assets/images/miner_rig_3d.jpg" alt=""/></div>
-                <div class="promo-text"><h4>Upgrade Your Mining Power</h4><p>Paid miners mine 24/7 for 180 days.</p></div>
+                <div class="promo-text"><h4>Upgrade Your Mining Power</h4><p>Paid miners mine 24/7 for ${minerDays()} days.</p></div>
               </div>
               <div style="color: var(--color-primary-purple);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg></div>
             </div>

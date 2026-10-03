@@ -137,6 +137,10 @@ export function tickerHTML() {
 }
 
 // ── miners ────────────────────────────────────────────────────────────────
+/** How long a paid miner runs (from the catalog; 30 days unless an admin changes it). */
+export const minerDays = (sku) =>
+  (sku ? state.products?.find((p) => p.sku === sku) : state.products?.find((p) => p.kind === 'miner'))?.durationDays ?? 30;
+
 export function minerStatus(m) {
   return m.status === 'active'
     ? `<span class="badge-status active"><span class="dot"></span> Active</span>`
@@ -151,6 +155,8 @@ export function minerCard(m, compact = false) {
   const pct = Math.round(Math.min(1, Math.max(0, (Date.now() - start) / (end - start))) * 100);
   const name = m.product?.name ?? (m.source === 'admin_grant' ? 'Bonus miner' : 'Miner');
   const days = Math.max(0, Math.ceil((end - Date.now()) / 86_400_000));
+  // Renewing = buying the same pack again; offered when the miner has ended or is about to.
+  const renew = m.source === 'paid' && m.product?.sku && m.status !== 'revoked' && (m.status !== 'active' || days <= 5);
   return `
     <div class="miner-card-item" data-go="miner-details" data-id="${esc(m.id)}" data-status="${m.status === 'active' ? 'active' : 'inactive'}" ${compact ? 'style="padding: 14px;"' : ''}>
       <div class="miner-card-header">
@@ -183,6 +189,7 @@ export function minerCard(m, compact = false) {
           <div class="bm-progress-track"><div class="bm-progress-fill" style="width: ${pct}%;"></div></div>
           <div class="miner-payout-info"><span>Paid out every hour</span><span style="font-weight: 700; color: var(--color-primary-purple);">${pct}% complete</span></div>
         </div>` : ''}
+      ${renew ? `<button class="btn-soft btn-block" style="margin-top: 10px;" data-act="buy" data-sku="${esc(m.product.sku)}">${m.status === 'active' ? `Ends in ${days} day${days === 1 ? '' : 's'} · Renew` : `Renew ${esc(name)}`}</button>` : ''}
     </div>`;
 }
 

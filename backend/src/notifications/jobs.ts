@@ -109,7 +109,7 @@ export async function runReminders(now = Date.now()) {
     const created = await notify(m.userId, {
       kind: "miner_expiry",
       title: `${product?.name ?? "Your miner"} ends soon`,
-      body: `Your ${product?.name ?? "miner"} (${m.gh.toLocaleString("en-US")} GH/s) stops mining in ${days} day${days === 1 ? "" : "s"}.`,
+      body: `Your ${product?.name ?? "miner"} (${m.gh.toLocaleString("en-US")} GH/s) stops mining in ${days} day${days === 1 ? "" : "s"}. Renew it in the Store to keep mining.`,
       dedupeKey: `miner_expiry:${m._id}`,
       data: { minerId: String(m._id) },
     });

@@ -47,7 +47,7 @@ export const FAQ_SEEDS = [
   {
     seedKey: "paid-miners",
     question: "How long do paid miners last?",
-    answer: "Paid miners mine for 180 days from purchase, 24 hours a day. You can own as many as you like.",
+    answer: "Paid miners mine for 30 days from purchase, 24 hours a day. Renew a miner by buying it again, and own as many as you like.",
   },
 ];
 

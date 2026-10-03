@@ -26,8 +26,8 @@ Inputs: [BITPLAY_BACKEND_ANALYSIS.md](BITPLAY_BACKEND_ANALYSIS.md), [BITPLAY_BUG
 | Super Miner tiers | Paid unlocks, each adding its **own** daily claim track (GH/s lasts until local midnight). Tiers stack; buying a tier again extends it. |
 | · Super Miner | **$4.99 / 30 days**: +30 claims/day × 5.5 GH/s = up to 165 GH/s/day |
 | · Super Miner Pro | **$49 / 365 days**: +50 claims/day × 10 GH/s = up to 500 GH/s/day |
-| · Super Miner Max | **$99 / 365 days**: +50 claims/day × 20 GH/s = up to 1 TH/s/day |
-| Paid miners | 180 days, mine 24/7, **no Start needed**, stack without limit |
+| · Super Miner Max | **$249 / 365 days**: +50 claims/day × 20 GH/s = up to 1 TH/s/day |
+| Paid miners | **30 days** (renewed by buying again), mine 24/7, **no Start needed**, stack without limit |
 | Paid packs | Mini 65 GH/s $1.99 · Spark 170 GH/s $4.99 · Core 360 GH/s $9.99 · Forge 760 GH/s $19.99 · Titan 2,000 GH/s $49.99 |
 | Referral | Referrer earns 5% of each referee's *mining* credits, capped at **5 sats/day per referrer** (total across all referees) |
 | Min withdrawal | **2,500 sats** |
@@ -216,7 +216,7 @@ Also ported with little change: `supportTickets`, `faqs`, `notificationPrefs`, `
 **Claims and midnight:** a claim miner's `endAt` is the user's next local midnight at claim time, computed on the server from `users.timezone`. There's no reset job: the next day's counters come from counting claims with the new `localDate`.
 
 **Unit tests (required before any UI work):**
-- Paid miner only, 180 days: total = gh × rate × 180 (±1 msat).
+- Paid miner only, 30 days: total = gh × rate × 30 (±1 msat).
 - Claim at 23:30 local → exactly 30 minutes of accrual. DST-change days in `America/New_York`, and `Asia/Kolkata` (UTC+5:30).
 - A rate change mid-hour splits correctly.
 - Re-running an hour credits nothing.
@@ -352,7 +352,7 @@ The user is **always** taken from the token. There's no `userId` in paths or bod
 - Onboarding (3 slides) · Sign in / up · OTP · 2FA · Forgot password
 - **Mine** (home): live BTC counter, total GH/s ring broken down by source (paid / claims / Super), Start mining, Claim +5.5 GH/s (n/60), one claim button per owned Super Miner tier (e.g. Pro +10 GH/s n/50), time to midnight
 - **Miners**: owned paid miners with expiry progress, plus today's claims
-- **Store**: paid miners, Super Miner tiers ($4.99 / $49 / $99), restore purchases
+- **Store**: paid miners, Super Miner tiers ($4.99 / $49 / $249), restore purchases
 - **Wallet**: balance, progress to 2,500 sats, withdraw, transaction history
 - **Withdraw** · Withdrawal status
 - **Profile**: referral, notifications, security (2FA, change password/email), timezone, support/FAQ, delete account, legal
@@ -432,4 +432,4 @@ SENTRY_DSN
 | 2 | Withdrawal approval | **Every withdrawal reviewed by admin** at launch |
 | 3 | News tab | **Dropped** for v1 |
 | 4 | 2FA method | **Email OTP** |
-| 5 | Super Miner | **Three tiers**: $4.99 / 30 days (30 × 5.5 GH/s), $49 / 365 days (50 × 10 GH/s), $99 / 365 days (50 × 20 GH/s). Tiers stack. The 365-day length for $49 and $99 follows BitPlay's 1-year privileges and is **still to be confirmed**. |
+| 5 | Super Miner | **Three tiers**: $4.99 / 30 days (30 × 5.5 GH/s), $49 / 365 days (50 × 10 GH/s), $249 / 365 days (50 × 20 GH/s). Tiers stack. The 365-day length for $49 and $99 follows BitPlay's 1-year privileges and is **still to be confirmed**. |

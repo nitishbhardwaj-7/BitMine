@@ -7,10 +7,10 @@ const RATE: RatePeriod[] = [{ effectiveAt: 0, rateMsatPerGhDay: 48 }];
 const T0 = Date.parse("2026-10-01T00:00:00Z");
 
 describe("earnedMsat", () => {
-  it("Titan over its full 180 days pays exactly 17,280 sats", () => {
-    const titan: MinerSpan = { gh: 2000, startAt: T0, endAt: T0 + 180 * MS_PER_DAY };
+  it("Titan over its full 30 days pays exactly 2,880 sats", () => {
+    const titan: MinerSpan = { gh: 2000, startAt: T0, endAt: T0 + 30 * MS_PER_DAY };
     // Window wider than the miner on both sides: nothing before start or after end.
-    expect(earnedMsat([titan], RATE, T0 - MS_PER_DAY, T0 + 200 * MS_PER_DAY)).toBeCloseTo(17_280_000, 6);
+    expect(earnedMsat([titan], RATE, T0 - MS_PER_DAY, T0 + 200 * MS_PER_DAY)).toBeCloseTo(2_880_000, 6);
   });
 
   it("a claim made at 23:30 IST mines exactly 30 minutes", () => {

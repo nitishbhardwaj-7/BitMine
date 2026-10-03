@@ -92,10 +92,10 @@ describe("store over HTTP", () => {
     const t = rc.buy(userId, "bitmine_super_max", Date.now());
     const res = await hook({
       id: "evt-1", type: "NON_RENEWING_PURCHASE", app_user_id: String(userId),
-      transaction_id: t.storeTransactionId, environment: "PRODUCTION", price: 99, currency: "USD",
+      transaction_id: t.storeTransactionId, environment: "PRODUCTION", price: 249, currency: "USD",
     });
     expect(await res.json()).toMatchObject({ ok: true, granted: 1 });
-    expect(await Purchase.findOne({ userId }).lean()).toMatchObject({ priceUsd: 99, rcEventId: "evt-1" });
+    expect(await Purchase.findOne({ userId }).lean()).toMatchObject({ priceUsd: 249, rcEventId: "evt-1" });
   });
 
   it("a webhook can't grant a purchase RevenueCat doesn't have", async () => {
