@@ -10,7 +10,7 @@ import { fmtHash } from '../format.js';
 import { initHeroScrollCollapse } from '../heroCollapse.js';
 import {
   tickerHTML, minerCard, claimTracksHTML, countdownText, featuredNews, newsRow, lessonRow, settlementRows,
-  liveBalanceHtml, liveSmallText, money, moneySub, minerDays, startHint, startLabel,
+  liveBalanceHtml, liveSmallText, money, moneySub, minerDays, startHint, startLabel, superUpsellHTML, superPacksHTML,
 } from './parts.js';
 
 function heroCard() {
@@ -50,9 +50,10 @@ export const screens = {
   home: {
     tab: 'home',
     dark: true,
-    keys: ['status', 'wallet', 'market', 'miners', 'daily', 'referrals', 'notifications', 'me'],
+    keys: ['status', 'wallet', 'market', 'miners', 'daily', 'referrals', 'notifications', 'me', 'products'],
     load: (ctx) => {
       ctx.ensure('lessons');
+      ctx.ensure('products');
       ctx.ensureKeyed('news', 'ALL');
     },
     render() {
@@ -156,6 +157,7 @@ export const screens = {
                 <span class="reset-chip">${icons.clock}<span data-live="countdown">${countdownText()}</span></span>
               </div>
               ${s ? claimTracksHTML() : skeleton(2)}
+              ${superUpsellHTML()}
               ${s && !s.session?.active ? `<button class="btn-primary btn-block" data-act="start-mining">${icons.bolt} Start mining</button>` : ''}
             </div>
 
@@ -178,6 +180,8 @@ export const screens = {
                      </div>`}
               </div>
             </div>
+
+            ${superPacksHTML()}
 
             ${news.length ? `
             <div>

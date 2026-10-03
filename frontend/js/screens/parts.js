@@ -6,6 +6,7 @@
 import { esc, emptyState } from '../ui.js';
 import { icons } from '../icons.js';
 import { state, btcUsd, liveBalanceMsat } from '../store.js';
+import { platform } from '../native.js';
 import { fmtSats, fmtSatsPrecise, fmtUsd, fmtBtc, fmtBtcParts, fmtHash, fmtPrice, fmtPct, fmtDay, fmtCountdown, timeAgo } from '../format.js';
 
 // ── balance units (BTC / sats / USD), remembered on the device ────────────
@@ -251,6 +252,59 @@ export function claimTracksHTML({ includeLocked = false } = {}) {
     }
   }
   return tracks.join('');
+}
+
+// ── Super Miner packs (extra daily claims, sold in the store) ─────────────
+/** Store price when the phone has loaded it, else our list price. */
+export function productPrice(p) {
+  const id = platform === 'ios' ? p.storeIds?.apple : p.storeIds?.google;
+  return state.prices?.[id] ?? `$${p.priceDisplayUsd.toFixed(2)}`;
+}
+const superPacks = () => (state.products ?? []).filter((p) => p.kind === 'super_miner');
+
+/** Shown under the claim tracks once today's free claims are used up: the next pack to unlock. */
+export function superUpsellHTML() {
+  const s = state.status;
+  if (!s || s.claims.used < s.claims.cap) return '';
+  const owned = new Set(s.superTiers.map((t) => t.sku));
+  const p = superPacks().find((x) => !owned.has(x.sku));
+  if (!p) return '';
+  return `
+    <div class="super-upsell" data-go="store" data-id="super">
+      <div class="super-upsell-icon">${icons.rocket}</div>
+      <div class="super-upsell-text">
+        <h4>${owned.size ? 'Want even more?' : 'Free claims done. Keep going!'}</h4>
+        <p>Claim +${p.claimGh} GH/s <strong>${p.claimsPerDay} more times</strong> every day with ${esc(p.name)}, just <strong>${esc(productPrice(p))}</strong>.</p>
+      </div>
+      <button class="btn-white claim-btn">${icons.bolt} Claim +${p.claimGh} GH/s</button>
+    </div>`;
+}
+
+/** Home row of Super Miner packs; every card leads to the store's Super Miner section. */
+export function superPacksHTML() {
+  const packs = superPacks();
+  if (!packs.length) return '';
+  const owned = new Map((state.status?.superTiers ?? []).map((t) => [t.sku, t]));
+  return `
+    <div>
+      <div class="section-header-row"><span class="section-title">Super Miner</span><span class="section-link" data-go="store" data-id="super">See packs</span></div>
+      <div class="super-pack-row">
+        ${packs.map((p, i) => `
+          <div class="super-pack tone-${i % 3}" data-go="store" data-id="super">
+            <div class="super-pack-top">
+              <div class="super-pack-icon">${icons.rocket}</div>
+              ${owned.has(p.sku) ? '<span class="super-pack-tag">Active</span>' : i === 0 ? '<span class="super-pack-tag">Most popular</span>' : ''}
+            </div>
+            <h4>${esc(p.name)}</h4>
+            <div class="super-pack-big">+${p.claimsPerDay} <small>claims a day</small></div>
+            <p>+${p.claimGh} GH/s each · up to ${fmtHash(p.maxGhPerDay)} daily</p>
+            <div class="super-pack-foot">
+              <span class="super-pack-price">${esc(productPrice(p))}<small> / ${p.durationDays} days</small></span>
+              <button class="btn-white claim-btn">${icons.bolt} Claim</button>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
 }
 
 export function countdownText() {

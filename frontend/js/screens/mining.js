@@ -149,20 +149,22 @@ function priceOf(p) {
   return state.prices[id] ?? `$${p.priceDisplayUsd.toFixed(2)}`;
 }
 
-function storeScreen() {
+function storeScreen(ctx) {
   const products = state.products;
   const owned = new Map((state.status?.superTiers ?? []).map((t) => [t.sku, t]));
   const rate = state.config?.economics?.rateMsatPerGhDay ?? 48; // estimate only; the server decides actual earnings
   const miners = (products ?? []).filter((p) => p.kind === 'miner');
   const supers = (products ?? []).filter((p) => p.kind === 'super_miner');
+  // Arriving from a Super Miner card on Home: those packs come first.
+  const superFirst = ctx?.params?.id === 'super';
   return `
     <div class="screen-scroll-view animate-fade-up">
       ${header('Store')}
       <div class="screen-content-padding" style="gap: 14px;">
         ${products == null ? (state.errors.products ? errorCard(state.errors.products, 'reload') : skeleton(5)) : `
-        <div class="section-header-row"><span class="section-title">Paid miners</span><span class="text-xs text-muted" style="font-weight: 600;">${minerDays()} days · renewable</span></div>
+        <div class="section-header-row" style="order: 2; margin-top: ${superFirst ? 6 : 0}px;"><span class="section-title">Paid miners</span><span class="text-xs text-muted" style="font-weight: 600;">${minerDays()} days · renewable</span></div>
         ${miners.map((p, i) => `
-          <div class="product-card ${i === miners.length - 1 ? 'featured' : ''}">
+          <div class="product-card ${i === miners.length - 1 ? 'featured' : ''}" style="order: 2;">
             <div class="product-head">
               <div style="display: flex; gap: 12px; align-items: center;">
                 <div class="promo-miner-thumb" style="width: 48px; height: 48px;"><img src="./assets/images/miner_rig_3d.jpg" alt=""/></div>
@@ -178,11 +180,11 @@ function storeScreen() {
             <button class="btn-primary btn-block" data-act="buy" data-sku="${esc(p.sku)}">Buy ${esc(p.name)}</button>
           </div>`).join('')}
 
-        <div class="section-header-row" style="margin-top: 6px;"><span class="section-title">Super Miner</span><span class="text-xs text-muted" style="font-weight: 600;">Extra daily claims</span></div>
+        <div class="section-header-row" style="order: ${superFirst ? 0 : 3}; margin-top: ${superFirst ? 0 : 6}px;"><span class="section-title">Super Miner</span><span class="text-xs text-muted" style="font-weight: 600;">Extra daily claims</span></div>
         ${supers.map((p) => {
           const o = owned.get(p.sku);
           return `
-          <div class="product-card featured">
+          <div class="product-card featured" style="order: ${superFirst ? 1 : 4};">
             <div class="product-head">
               <div style="display: flex; gap: 12px; align-items: center;">
                 <div class="icon-box-purple">${icons.rocket}</div>
@@ -191,6 +193,7 @@ function storeScreen() {
               <span class="product-price">${esc(priceOf(p))}</span>
             </div>
             <div class="product-facts">
+              <span class="product-fact">+${p.claimsPerDay} claims every day</span>
               <span class="product-fact">Up to ${fmtHash(p.maxGhPerDay)} a day</span>
               <span class="product-fact">${p.durationDays} days</span>
               ${o ? `<span class="owned-chip">Active until ${fmtDate(o.activeUntil)}</span>` : ''}
@@ -199,8 +202,8 @@ function storeScreen() {
           </div>`;
         }).join('')}
 
-        <button class="btn-soft btn-block" data-act="restore-purchases">Restore purchases</button>
-        <p class="muted-note">Earnings shown are estimates at today's mining rate and are paid in sats. Purchases are processed by ${platform === 'ios' ? 'the App Store' : 'Google Play'} and confirmed by our server before anything is added.</p>`}
+        <button class="btn-soft btn-block" style="order: 5;" data-act="restore-purchases">Restore purchases</button>
+        <p class="muted-note" style="order: 5;">Earnings shown are estimates at today's mining rate and are paid in sats. Purchases are processed by ${platform === 'ios' ? 'the App Store' : 'Google Play'} and confirmed by our server before anything is added.</p>`}
       </div>
     </div>`;
 }
