@@ -58,13 +58,13 @@ describe("store over HTTP", () => {
     expect(products.map((p) => p.sku)).toEqual([
       "starter_bundle", "miner_mini", "miner_spark", "miner_core", "miner_forge", "miner_titan", "super_basic", "super_pro", "super_max",
     ]);
-    expect(products[5]!.storeIds.apple).toBe("bitmine_miner_titan");
+    expect(products[5]!.storeIds.apple).toBe("bitmine_miner_titan_monthly");
   });
 
   it("POST /v1/store/sync grants what RevenueCat confirms for the signed-in user only", async () => {
     const buyer = await createUser();
     const other = await createUser();
-    rc.buy(buyer, "bitmine_miner_forge", Date.now());
+    rc.buy(buyer, "bitmine_miner_forge_monthly", Date.now());
 
     const asOther = await fetch(`${base}/v1/store/sync`, {
       method: "POST",
@@ -107,7 +107,7 @@ describe("store over HTTP", () => {
 
   it("refund webhook revokes the miner", async () => {
     const userId = await createUser();
-    const t = rc.buy(userId, "bitmine_miner_core", Date.now());
+    const t = rc.buy(userId, "bitmine_miner_core_monthly", Date.now());
     await hook({ id: "e1", type: "NON_RENEWING_PURCHASE", app_user_id: String(userId), environment: "PRODUCTION" });
 
     const res = await hook({ id: "e2", type: "CANCELLATION", cancel_reason: "CUSTOMER_SUPPORT", transaction_id: t.storeTransactionId, environment: "PRODUCTION" });
@@ -117,7 +117,7 @@ describe("store over HTTP", () => {
 
   it("ignores sandbox events and unknown users", async () => {
     const userId = await createUser();
-    rc.buy(userId, "bitmine_miner_mini", Date.now());
+    rc.buy(userId, "bitmine_miner_mini_monthly", Date.now());
     expect(await (await hook({ type: "NON_RENEWING_PURCHASE", app_user_id: String(userId), environment: "SANDBOX" })).json()).toMatchObject({ ignored: "sandbox" });
     expect(await (await hook({ type: "NON_RENEWING_PURCHASE", app_user_id: "$RCAnonymousID:abc", environment: "PRODUCTION" })).json()).toMatchObject({ ignored: "unknown_user" });
     expect(await Miner.countDocuments({})).toBe(0);
@@ -131,7 +131,7 @@ describe("purchases racing the hourly job", () => {
       const userId = await createUser();
       await ensureBalance(userId, start);
       // Bought at 00:30, processed at 03:05 while the 03:00 accrual run is in flight.
-      rc.buy(userId, "bitmine_miner_titan", start + 30 * 60_000);
+      rc.buy(userId, "bitmine_miner_titan_monthly", start + 30 * 60_000);
       await Promise.all([
         runAccrual({ now: start + 3 * MS_PER_HOUR + 5 * 60_000 }),
         syncUser(userId, { revenueCat: rc.client, allowSandbox: false }, start + 3 * MS_PER_HOUR + 5 * 60_000),

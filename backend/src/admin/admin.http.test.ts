@@ -196,7 +196,7 @@ describe("admin actions", () => {
     const form = { _csrf: csrf, name: "Titan X", priceDisplayUsd: "49.99", durationDays: "30", gh: "2100", apple: "bitmine_miner_titan", google: "bitmine_miner_titan", sortOrder: "50", active: "yes" };
     await b.req("POST", "/admin/products/miner_titan", form);
     expect(await Product.findOne({ sku: "miner_titan" }).lean()).toMatchObject({ name: "Titan X", gh: 2100 });
-    const dup = await b.req("POST", "/admin/products/miner_titan", { ...form, apple: "bitmine_miner_core" });
+    const dup = await b.req("POST", "/admin/products/miner_titan", { ...form, apple: "bitmine_miner_core_monthly" });
     expect(decodeURIComponent(dup.location!)).toContain("already uses");
   });
 

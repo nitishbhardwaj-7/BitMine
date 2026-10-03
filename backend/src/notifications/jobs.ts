@@ -116,7 +116,14 @@ export async function runReminders(now = Date.now()) {
   for (const m of miners) {
     const stage = stageOf(m.endAt.getTime());
     if (!stage) continue;
-    const name = products.get(String(m.productId))?.name ?? "Your miner";
+    const product = products.get(String(m.productId));
+    if (product?.billing === "subscription") {
+      // It renews itself: say something only once it has really lapsed (the renewal
+      // can land a little after the old month ends) and no new month is running.
+      if (stage !== "ended" || now - m.endAt.getTime() < 6 * 3_600_000) continue;
+      if (await Miner.exists({ userId: m.userId, productId: m.productId, source: "paid", revokedAt: null, endAt: { $gt: new Date(now) } })) continue;
+    }
+    const name = product?.name ?? "Your miner";
     const gh = m.gh.toLocaleString("en-US");
     const created = await notify(m.userId, {
       kind: "miner_expiry",

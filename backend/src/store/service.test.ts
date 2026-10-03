@@ -10,9 +10,9 @@ import { runAccrual } from "../mining/accrualJob.js";
 import { refundTransaction, runStoreFollowUps, syncFromApp, syncUser } from "./service.js";
 
 const NOW = Date.parse("2026-10-01T06:00:00Z");
-const TITAN = "bitmine_miner_titan";
+const TITAN = "bitmine_miner_titan_monthly";
 const PRO = "bitmine_super_pro";
-const BASIC = "bitmine_super_basic_monthly";
+const BASIC = "bitmine_super_basic";
 
 beforeAll(startTestDb, 180_000);
 afterAll(stopTestDb);
@@ -55,7 +55,7 @@ describe("store", () => {
     const userId = await createUser();
     rc.buy(userId, TITAN, NOW);
     rc.buy(userId, TITAN, NOW + 1000);
-    rc.buy(userId, "bitmine_miner_mini", NOW + 2000);
+    rc.buy(userId, "bitmine_miner_mini_monthly", NOW + 2000);
 
     await syncUser(userId, { revenueCat: rc.client, allowSandbox: false }, NOW + 3000);
 

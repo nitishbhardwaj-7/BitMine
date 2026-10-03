@@ -153,7 +153,7 @@ describe("starter bundle and subscriptions", () => {
     expect((await getMiningStatus(userId, created + 49 * MS_PER_HOUR)).offer).toBeNull();
 
     const rc = fakeRevenueCat();
-    rc.buy(userId, "bitmine_miner_mini", created + 1000);
+    rc.buy(userId, "bitmine_miner_mini_monthly", created + 1000);
     await syncUser(userId, { revenueCat: rc.client, allowSandbox: false }, created + 2000);
     expect((await getMiningStatus(userId, created + MS_PER_HOUR)).offer).toBeNull();
   });
@@ -176,29 +176,57 @@ describe("starter bundle and subscriptions", () => {
     expect((await SuperEntitlement.findOne({ userId, productId: basic._id }).lean())!.activeUntil.getTime()).toBe(NOON + MS_PER_DAY);
   });
 
-  it("each subscription period extends the tier to that period's end, once", async () => {
+  it("a miner subscription mines for each paid month; a renewal is the next month's miner", async () => {
     const userId = await createUser("UTC");
     const rc = fakeRevenueCat();
-    const basic = (await Product.findOne({ sku: "super_basic" }).lean())!;
-    const until = async () => (await SuperEntitlement.findOne({ userId, productId: basic._id }).lean())!.activeUntil.getTime();
     const deps = { revenueCat: rc.client, allowSandbox: false };
+    const month2 = NOON + 31 * MS_PER_DAY;
 
-    rc.buy(userId, "bitmine_super_basic_monthly", NOON, { expiresAt: NOON + 31 * MS_PER_DAY });
+    rc.buy(userId, "bitmine_miner_core_monthly", NOON, { expiresAt: month2 });
     await syncUser(userId, deps, NOON + 1000);
-    await syncUser(userId, deps, NOON + 2000);
-    expect(await until()).toBe(NOON + 31 * MS_PER_DAY);
+    await syncUser(userId, deps, NOON + 2000); // syncing again grants nothing new
+    let miners = await Miner.find({ userId, source: "paid" }).sort({ startAt: 1 }).lean();
+    expect(miners).toHaveLength(1);
+    expect(miners[0]).toMatchObject({ gh: 360 });
+    expect(miners[0]!.endAt.getTime()).toBe(month2); // the paid period, not a flat 30 days
 
     // The renewal is a new store transaction covering the next month.
-    rc.buy(userId, "bitmine_super_basic_monthly", NOON + 31 * MS_PER_DAY, { expiresAt: NOON + 61 * MS_PER_DAY });
-    await syncUser(userId, deps, NOON + 31 * MS_PER_DAY + 1000);
-    expect(await until()).toBe(NOON + 61 * MS_PER_DAY);
+    rc.buy(userId, "bitmine_miner_core_monthly", month2, { expiresAt: month2 + 30 * MS_PER_DAY });
+    await syncUser(userId, deps, month2 + 1000);
+    miners = await Miner.find({ userId, source: "paid" }).sort({ startAt: 1 }).lean();
+    expect(miners).toHaveLength(2);
+    expect(miners[1]!.startAt.getTime()).toBe(month2);
+    expect(miners[1]!.endAt.getTime()).toBe(month2 + 30 * MS_PER_DAY);
+    expect((await getMiningStatus(userId, month2 + MS_PER_HOUR)).gh.paid).toBe(360); // never doubled
     expect(await Purchase.countDocuments({ userId })).toBe(2);
+  });
+
+  it("a subscribed miner sends no renewal reminders unless it really lapses", async () => {
+    const userId = await createUser("UTC");
+    const core = (await Product.findOne({ sku: "miner_core" }).lean())!;
+    const end = NOON + 2 * MS_PER_DAY;
+    const month = (startAt: number, endAt: number) => Miner.create({ userId, source: "paid", gh: 360, productId: core._id, startAt: new Date(startAt), endAt: new Date(endAt) });
+    await month(end - 30 * MS_PER_DAY, end);
+
+    expect((await runReminders(NOON)).expiry).toBe(0);
+    expect((await runReminders(end - MS_PER_HOUR)).expiry).toBe(0);
+    expect((await runReminders(end + MS_PER_HOUR)).expiry).toBe(0); // the renewal may still be on its way
+    expect((await runReminders(end + 7 * MS_PER_HOUR)).expiry).toBe(1); // it never came: lapsed
+    expect((await Notification.findOne({ userId }).lean())!.title).toBe("Core has stopped mining");
+
+    // A subscriber whose next month arrived hears nothing.
+    const other = await createUser("UTC");
+    await Miner.create({ userId: other, source: "paid", gh: 360, productId: core._id, startAt: new Date(end - 30 * MS_PER_DAY), endAt: new Date(end) });
+    await Miner.create({ userId: other, source: "paid", gh: 360, productId: core._id, startAt: new Date(end), endAt: new Date(end + 30 * MS_PER_DAY) });
+    await runReminders(end + 7 * MS_PER_HOUR);
+    expect(await Notification.countDocuments({ userId: other })).toBe(0);
   });
 });
 
 describe("renewal reminders", () => {
   it("3 days before, the day before and when a paid miner ends: once each", async () => {
     const userId = await createUser("UTC");
+    await Product.updateOne({ sku: "miner_titan" }, { $set: { billing: "one_time" } });
     const titan = (await Product.findOne({ sku: "miner_titan" }).lean())!;
     const end = NOON + 3 * MS_PER_DAY - MS_PER_HOUR;
     await Miner.create({ userId, source: "paid", gh: 2000, productId: titan._id, startAt: new Date(NOON - 27 * MS_PER_DAY), endAt: new Date(end) });
@@ -215,7 +243,7 @@ describe("renewal reminders", () => {
     expect((await Notification.findOne({ userId }).lean())!.data).toMatchObject({ go: "store" });
   });
 
-  it("Super Miner tiers get the same reminders; a subscription only hears when it has lapsed", async () => {
+  it("Super Miner tiers get the same reminders", async () => {
     const userId = await createUser("UTC");
     const pro = (await Product.findOne({ sku: "super_pro" }).lean())!;
     const basic = (await Product.findOne({ sku: "super_basic" }).lean())!;
@@ -223,10 +251,10 @@ describe("renewal reminders", () => {
     await SuperEntitlement.create({ userId, productId: pro._id, activeUntil: new Date(end) });
     await SuperEntitlement.create({ userId, productId: basic._id, activeUntil: new Date(end) });
 
-    expect((await runReminders(NOON)).expiry).toBe(1); // Pro, 3-day stage
-    expect((await runReminders(end - MS_PER_HOUR)).expiry).toBe(1); // Pro, the day before
+    expect((await runReminders(NOON)).expiry).toBe(2); // both, 3-day stage
+    expect((await runReminders(end - MS_PER_HOUR)).expiry).toBe(2); // both, the day before
     expect((await runReminders(end + MS_PER_HOUR)).expiry).toBe(2); // both have ended
     const titles = (await Notification.find({ userId }).sort({ _id: 1 }).lean()).map((n) => n.title).sort();
-    expect(titles).toEqual(["Super Miner Pro ends in 3 days", "Super Miner Pro ends tomorrow", "Super Miner Pro has ended", "Super Miner has ended"].sort());
+    expect(titles).toEqual(["Super Miner Pro ends in 3 days", "Super Miner Pro ends tomorrow", "Super Miner Pro has ended", "Super Miner ends in 3 days", "Super Miner ends tomorrow", "Super Miner has ended"].sort());
   });
 });

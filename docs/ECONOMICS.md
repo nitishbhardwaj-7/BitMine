@@ -50,7 +50,7 @@ Set in admin → FAQs & app ("Perks & bonuses", "Sale banner"); defaults in `bac
 | Streak: every 7th day started in a row adds 55 GH/s until midnight | on | At most ~2.6 sats per user per week |
 | Boost video: doubles running hashpower (max 500 GH/s) for 60 min, 3 a day | on | At most 1 sat per video, well under what a rewarded view pays |
 | Starter Pack (`starter_bundle`): Mini Miner + Super Miner for 30 days, $3.99, offered for 48 h after sign-up until the first purchase | on | None (a discount) |
-| Super Miner (`super_basic`) is an auto-renewing monthly subscription | on | None |
+| Paid miners (Mini to Titan) are auto-renewing monthly subscriptions; each paid month is a miner for that month. Super Miner tiers and the Starter Pack are one-time | on | None |
 | Sale banner with countdown | off | None; the real price is whatever the store charges |
 
-Renewal reminders go out 3 days before, 1 day before and when a paid miner or Super Miner tier ends (subscriptions only when they lapse).
+Renewal reminders go out 3 days before, 1 day before and when a paid miner or Super Miner tier ends (a subscribed miner only if it lapses without renewing).

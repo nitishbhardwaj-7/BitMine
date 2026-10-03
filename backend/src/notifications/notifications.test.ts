@@ -171,8 +171,9 @@ describe("reminders", () => {
     expect(await Notification.countDocuments({ userId: { $in: [active, elsewhere, noPhone] } })).toBe(0);
   });
 
-  it("warns once when a paid miner has 3 days left", async () => {
+  it("warns once when a one-time paid miner has 3 days left", async () => {
     const userId = await createUser();
+    await Product.updateOne({ sku: "miner_titan" }, { $set: { billing: "one_time" } });
     const titan = await Product.findOne({ sku: "miner_titan" }).lean();
     const now = Date.now();
     await Miner.create({ userId, source: "paid", gh: 2000, productId: titan!._id, startAt: new Date(now - 177 * MS_PER_DAY), endAt: new Date(now + 2.5 * MS_PER_DAY) });

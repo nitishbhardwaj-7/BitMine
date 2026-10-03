@@ -12,7 +12,7 @@ import { state, refresh, loadKeyed } from '../store.js';
 import { fmtHash, fmtSats, fmtSatsAuto, fmtUsd, fmtDate } from '../format.js';
 import { config } from '../config.js';
 import { isNative, platform, showRewardedAd, buyProduct, storePrices } from '../native.js';
-import { claimTracksHTML, countdownText, minerCard, minerStatus, minerDays, startHint, startLabel } from './parts.js';
+import { claimTracksHTML, countdownText, minerCard, minerStatus, minerDays, startHint, startLabel, isSubscription, subscribedTo } from './parts.js';
 import { btcUsd } from '../store.js';
 import { offerHTML, promoHTML, streakHTML, boostHTML, priceHTML, saleChipHTML, openClaimsDoneSheet, openStartedSheet } from './offers.js';
 
@@ -102,7 +102,9 @@ function minerDetailsScreen(ctx) {
   const pct = Math.round(d.progress * 100);
   // This miner's own length (older ones were sold with a different one), and what a renewal gives today.
   const days = Math.round((Date.parse(d.endAt) - Date.parse(d.startAt)) / 86_400_000);
-  const canRenew = d.source === 'paid' && d.product?.sku && d.status !== 'revoked';
+  const subscription = isSubscription(d.product?.sku);
+  // A subscription renews itself; it can only be taken out again once no month of it is running.
+  const canRenew = d.source === 'paid' && d.product?.sku && d.status !== 'revoked' && !(subscription && subscribedTo(d.product.sku));
   const renewDays = canRenew ? minerDays(d.product.sku) : 0;
   return `
     <div class="screen-scroll-view animate-fade-up">
@@ -139,8 +141,8 @@ function minerDetailsScreen(ctx) {
           <div class="info-row"><span>Ends</span><strong>${fmtDate(d.endAt)}</strong></div>
         </div></div>
         ${canRenew ? `
-        <button class="btn-primary btn-block" data-act="buy" data-sku="${esc(d.product.sku)}">Renew ${esc(d.product.name)} · ${renewDays} days</button>
-        <p class="muted-note">Renewing starts a fresh ${esc(d.product.name)} today for ${renewDays} days.${d.status === 'active' ? ' Until this one ends, both mine together.' : ''}</p>` : ''}
+        <button class="btn-primary btn-block" data-act="buy" data-sku="${esc(d.product.sku)}">${subscription ? `Subscribe to ${esc(d.product.name)} again` : `Renew ${esc(d.product.name)} · ${renewDays} days`}</button>
+        <p class="muted-note">${subscription ? `This subscription has ended. Subscribing again starts ${esc(d.product.name)} mining today.` : `Renewing starts a fresh ${esc(d.product.name)} today for ${renewDays} days.${d.status === 'active' ? ' Until this one ends, both mine together.' : ''}`}</p>` : subscription && d.status === 'active' ? `<p class="muted-note">${esc(d.product.name)} renews automatically every month, so it keeps mining without a gap. You can cancel any time in ${platform === 'ios' ? 'the App Store' : 'Google Play'}.</p>` : ''}
         <p class="muted-note">Estimates use today's mining rate. Figures in sats are what you receive; USD values move with the Bitcoin price.</p>
       </div>
     </div>`;
@@ -161,7 +163,7 @@ function storeScreen(ctx) {
       <div class="screen-content-padding" style="gap: 14px;">
         ${products == null ? (state.errors.products ? errorCard(state.errors.products, 'reload') : skeleton(5)) : `
         ${offerHTML() || promoHTML() ? `<div class="stack" style="order: -1;">${offerHTML()}${promoHTML()}</div>` : ''}
-        <div class="section-header-row" style="order: 2; margin-top: ${superFirst ? 6 : 0}px;"><span class="section-title">Paid miners</span><span class="text-xs text-muted" style="font-weight: 600;">${minerDays()} days · renewable</span></div>
+        <div class="section-header-row" style="order: 2; margin-top: ${superFirst ? 6 : 0}px;"><span class="section-title">Paid miners</span><span class="text-xs text-muted" style="font-weight: 600;">${miners.some((p) => p.billing === 'subscription') ? 'Renews monthly · cancel anytime' : `${minerDays()} days · renewable`}</span></div>
         ${miners.map((p, i) => `
           <div class="product-card ${i === miners.length - 1 ? 'featured' : ''}" style="order: 2;">
             <div class="product-head">
@@ -174,10 +176,10 @@ function storeScreen(ctx) {
             <div class="product-facts">
               ${saleChipHTML(p)}
               <span class="product-fact">up to ${fmtSats(p.gh * rate)} / day</span>
-              <span class="product-fact">${p.durationDays} days</span>
+              <span class="product-fact">${p.billing === 'subscription' ? 'Keeps mining every month' : `${p.durationDays} days`}</span>
               ${state.status?.perks?.paidSkipStartAds ? '<span class="product-fact perk">One-tap daily start, no videos</span>' : '<span class="product-fact">Stacks with other miners</span>'}
             </div>
-            <button class="btn-primary btn-block" data-act="buy" data-sku="${esc(p.sku)}">Buy ${esc(p.name)}</button>
+            <button class="btn-primary btn-block" data-act="buy" data-sku="${esc(p.sku)}" ${p.billing === 'subscription' && subscribedTo(p.sku) ? 'disabled' : ''}>${p.billing === 'subscription' ? (subscribedTo(p.sku) ? 'Subscribed · renews automatically' : `Subscribe to ${esc(p.name)}`) : `Buy ${esc(p.name)}`}</button>
           </div>`).join('')}
 
         <div class="section-header-row" style="order: ${superFirst ? 0 : 3}; margin-top: ${superFirst ? 0 : 6}px;"><span class="section-title">Super Miner</span><span class="text-xs text-muted" style="font-weight: 600;">Extra daily claims</span></div>
@@ -205,7 +207,7 @@ function storeScreen(ctx) {
         }).join('')}
 
         <button class="btn-soft btn-block" style="order: 5;" data-act="restore-purchases">Restore purchases</button>
-        <p class="muted-note" style="order: 5;">Earnings shown are estimates at today's mining rate and are paid in sats. Purchases are processed by ${platform === 'ios' ? 'the App Store' : 'Google Play'} and confirmed by our server before anything is added.${supers.some((p) => p.billing === 'subscription') ? ` Subscriptions renew every month until you cancel them in ${platform === 'ios' ? 'the App Store' : 'Google Play'}.` : ''}</p>`}
+        <p class="muted-note" style="order: 5;">Earnings shown are estimates at today's mining rate and are paid in sats. Purchases are processed by ${platform === 'ios' ? 'the App Store' : 'Google Play'} and confirmed by our server before anything is added.${(products ?? []).some((p) => p.billing === 'subscription') ? ` Subscriptions renew every month until you cancel them in ${platform === 'ios' ? 'the App Store' : 'Google Play'}.` : ''}</p>`}
       </div>
     </div>`;
 }
@@ -222,8 +224,9 @@ export const screens = {
   },
   store: {
     tab: 'home',
-    keys: ['products', 'status', 'prices'],
+    keys: ['products', 'status', 'prices', 'miners'],
     load: async (ctx) => {
+      ctx.ensure('miners');
       await ctx.ensure('products');
       if (isNative && state.products && state.me) {
         const id = (p) => (platform === 'ios' ? p.storeIds?.apple : p.storeIds?.google);

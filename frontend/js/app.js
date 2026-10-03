@@ -382,11 +382,31 @@ function versionBelow(v, min) {
   return false;
 }
 
+/**
+ * Subscribed miners renew in the store; the server normally hears about it from the
+ * store's webhook. As a safety net, anyone who has had a paid miner asks the server
+ * to check once a day, so a missed notification can't leave a paid month ungranted.
+ */
+function syncSubscriptions() {
+  if (!(state.miners ?? []).some((m) => m.source === 'paid')) return;
+  const today = new Date().toDateString();
+  try {
+    if (localStorage.getItem('bitmine.storeSync') === today) return;
+    localStorage.setItem('bitmine.storeSync', today);
+  } catch {
+    return;
+  }
+  post('/v1/store/sync')
+    .then((r) => r.granted?.length && refresh('status', 'miners'))
+    .catch(() => undefined);
+}
+
 let registeredPushToken = null;
 async function afterSignIn() {
   await bootstrap();
   startPolling();
   if (isNative) {
+    syncSubscriptions();
     const token = await pushToken();
     if (token && token !== registeredPushToken) {
       await post('/v1/push-tokens', { token, platform }).catch(() => undefined);

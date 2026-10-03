@@ -170,14 +170,20 @@ export function minerStatus(m) {
       : `<span class="badge-status inactive"><span class="dot"></span> Ended</span>`;
 }
 
+/** Is this pack an auto-renewing subscription, and does the user have a month of it running? */
+export const isSubscription = (sku) => (state.products ?? []).find((p) => p.sku === sku)?.billing === 'subscription';
+export const subscribedTo = (sku) => (state.miners ?? []).some((x) => x.source === 'paid' && x.status === 'active' && x.product?.sku === sku);
+
 export function minerCard(m, compact = false) {
   const start = Date.parse(m.startAt);
   const end = Date.parse(m.endAt);
   const pct = Math.round(Math.min(1, Math.max(0, (Date.now() - start) / (end - start))) * 100);
   const name = m.product?.name ?? (m.source === 'admin_grant' ? 'Bonus miner' : 'Miner');
   const days = Math.max(0, Math.ceil((end - Date.now()) / 86_400_000));
-  // Renewing = buying the same pack again; offered when the miner has ended or is about to.
-  const renew = m.source === 'paid' && m.product?.sku && m.status !== 'revoked' && (m.status !== 'active' || days <= 5);
+  // One-time packs: renewing = buying the pack again, offered when it has ended or is about to.
+  // Subscriptions renew themselves: offer it again only once it has lapsed with no new month running.
+  const sub = isSubscription(m.product?.sku);
+  const renew = m.source === 'paid' && m.product?.sku && m.status !== 'revoked' && (sub ? m.status !== 'active' && !subscribedTo(m.product.sku) : m.status !== 'active' || days <= 5);
   return `
     <div class="miner-card-item" data-go="miner-details" data-id="${esc(m.id)}" data-status="${m.status === 'active' ? 'active' : 'inactive'}" ${compact ? 'style="padding: 14px;"' : ''}>
       <div class="miner-card-header">
@@ -185,7 +191,7 @@ export function minerCard(m, compact = false) {
           ${compact ? '' : `<div class="icon-box-purple sm">${icons.miner}</div>`}
           <div>
             <h4>${esc(name)}</h4>
-            <p>${m.status === 'active' ? `${state.status?.dailyStartRequired ? (state.status.mining ? "Mining now" : "Not started today") : "Mining 24/7"} · ends ${new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : `Ran ${new Date(start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}</p>
+            <p>${m.status === 'active' ? `${state.status?.dailyStartRequired ? (state.status.mining ? "Mining now" : "Not started today") : "Mining 24/7"} · ${isSubscription(m.product?.sku) ? "renews" : "ends"} ${new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : `Ran ${new Date(start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}</p>
           </div>
         </div>
         ${minerStatus(m)}
@@ -210,7 +216,7 @@ export function minerCard(m, compact = false) {
           <div class="bm-progress-track"><div class="bm-progress-fill" style="width: ${pct}%;"></div></div>
           <div class="miner-payout-info"><span>Paid out every hour</span><span style="font-weight: 700; color: var(--color-primary-purple);">${pct}% complete</span></div>
         </div>` : ''}
-      ${renew ? `<button class="btn-soft btn-block" style="margin-top: 10px;" data-act="buy" data-sku="${esc(m.product.sku)}">${m.status === 'active' ? `Ends in ${days} day${days === 1 ? '' : 's'} · Renew` : `Renew ${esc(name)}`}</button>` : ''}
+      ${renew ? `<button class="btn-soft btn-block" style="margin-top: 10px;" data-act="buy" data-sku="${esc(m.product.sku)}">${sub ? `Subscribe to ${esc(name)} again` : m.status === 'active' ? `Ends in ${days} day${days === 1 ? '' : 's'} · Renew` : `Renew ${esc(name)}`}</button>` : ''}
     </div>`;
 }
 

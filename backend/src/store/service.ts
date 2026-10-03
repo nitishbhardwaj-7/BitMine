@@ -6,7 +6,8 @@
  * three look the purchase up in RevenueCat first; the unique
  * storeTransactionId makes whichever arrives second a no-op.
  *
- *   paid miner  → a miner of the pack's GH/s for durationDays, stacking freely
+ *   paid miner  → a miner of the pack's GH/s for durationDays (a subscription
+ *                 period: until that period ends; each renewal is a new miner)
  *   Super tier  → that tier's entitlement extended by durationDays (a
  *                 subscription period extends it to that period's end)
  *   bundle      → both of the above from one purchase
@@ -105,6 +106,8 @@ export async function grantTransaction(
       let activeUntil: string | undefined;
 
       if (product.kind !== "super_miner" && product.gh) {
+        // A subscription period mines until that period ends; a one-time pack for its length.
+        const endAt = t.expiresAt && t.expiresAt > startAt ? t.expiresAt : startAt + product.durationDays * MS_PER_DAY;
         const [miner] = await Miner.create(
           [
             {
@@ -112,14 +115,14 @@ export async function grantTransaction(
               source: "paid",
               gh: product.gh!,
               startAt: new Date(startAt),
-              endAt: new Date(startAt + product.durationDays * MS_PER_DAY),
+              endAt: new Date(endAt),
               productId: product._id,
               purchaseId: purchase!._id,
             },
           ],
           { session: tx },
         );
-        await backfill(userId, miner!._id, { gh: product.gh!, startAt, endAt: startAt + product.durationDays * MS_PER_DAY }, tx);
+        await backfill(userId, miner!._id, { gh: product.gh!, startAt, endAt }, tx);
         await Purchase.updateOne({ _id: purchase!._id }, { $set: { grantedMinerId: miner!._id } }, { session: tx });
       }
       if (superProduct) {
