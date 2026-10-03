@@ -102,7 +102,7 @@ function minerDetailsScreen(ctx) {
   const pct = Math.round(d.progress * 100);
   // This miner's own length (older ones were sold with a different one), and what a renewal gives today.
   const days = Math.round((Date.parse(d.endAt) - Date.parse(d.startAt)) / 86_400_000);
-  const subscription = isSubscription(d.product?.sku);
+  const subscription = d.source === 'paid' && isSubscription(d.product?.sku); // granted miners never renew
   // A subscription renews itself; it can only be taken out again once no month of it is running.
   const canRenew = d.source === 'paid' && d.product?.sku && d.status !== 'revoked' && !(subscription && subscribedTo(d.product.sku));
   const renewDays = canRenew ? minerDays(d.product.sku) : 0;

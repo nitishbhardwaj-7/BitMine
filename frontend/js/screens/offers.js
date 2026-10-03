@@ -9,7 +9,10 @@ import { esc, openSheet, sheetOpen } from '../ui.js';
 import { icons } from '../icons.js';
 import { state } from '../store.js';
 import { fmtHash, fmtSats, fmtCountdown } from '../format.js';
-import { productPrice } from './parts.js';
+import { productPrice, subscribedTo } from './parts.js';
+
+/** The biggest paid miner the user can still take (a subscription can't be bought twice). */
+const topMiner = () => (state.products ?? []).filter((p) => p.kind === 'miner' && !(p.billing === 'subscription' && subscribedTo(p.sku))).pop();
 
 const product = (sku) => (state.products ?? []).find((p) => p.sku === sku);
 const rate = () => state.config?.economics?.rateMsatPerGhDay ?? 48; // msat per GH/s per day
@@ -156,10 +159,9 @@ export function boostHTML() {
 function upgrades() {
   const owned = ownedSupers();
   const supers = (state.products ?? []).filter((p) => p.kind === 'super_miner' && !owned.has(p.sku));
-  const miners = (state.products ?? []).filter((p) => p.kind === 'miner');
   // The middle Super Miner is the recommended one; fall back to the first not owned.
   const sup = supers.find((p) => p.sku === 'super_pro') ?? supers[0];
-  const top = miners[miners.length - 1];
+  const top = topMiner();
   return [
     sup && { name: sup.name, gh: sup.maxGhPerDay, price: productPrice(sup), section: 'super' },
     top && { name: `${top.name} miner`, gh: top.gh, price: productPrice(top), section: '' },
@@ -190,8 +192,7 @@ export function compareHTML() {
 export function reachFasterHTML(availSats, minSats) {
   const s = state.status;
   if (!s || availSats >= minSats) return '';
-  const miners = (state.products ?? []).filter((p) => p.kind === 'miner');
-  const top = miners[miners.length - 1];
+  const top = topMiner();
   if (!top) return '';
   const days = (gh) => Math.ceil((minSats - availSats) / ((gh * rate()) / 1000));
   const now = s.gh.total > 0 ? days(s.gh.total) : null;

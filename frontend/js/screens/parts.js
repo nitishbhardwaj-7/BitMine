@@ -182,7 +182,7 @@ export function minerCard(m, compact = false) {
   const days = Math.max(0, Math.ceil((end - Date.now()) / 86_400_000));
   // One-time packs: renewing = buying the pack again, offered when it has ended or is about to.
   // Subscriptions renew themselves: offer it again only once it has lapsed with no new month running.
-  const sub = isSubscription(m.product?.sku);
+  const sub = m.source === 'paid' && isSubscription(m.product?.sku); // granted miners never renew
   const renew = m.source === 'paid' && m.product?.sku && m.status !== 'revoked' && (sub ? m.status !== 'active' && !subscribedTo(m.product.sku) : m.status !== 'active' || days <= 5);
   return `
     <div class="miner-card-item" data-go="miner-details" data-id="${esc(m.id)}" data-status="${m.status === 'active' ? 'active' : 'inactive'}" ${compact ? 'style="padding: 14px;"' : ''}>
@@ -191,7 +191,7 @@ export function minerCard(m, compact = false) {
           ${compact ? '' : `<div class="icon-box-purple sm">${icons.miner}</div>`}
           <div>
             <h4>${esc(name)}</h4>
-            <p>${m.status === 'active' ? `${state.status?.dailyStartRequired ? (state.status.mining ? "Mining now" : "Not started today") : "Mining 24/7"} · ${isSubscription(m.product?.sku) ? "renews" : "ends"} ${new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : `Ran ${new Date(start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}</p>
+            <p>${m.status === 'active' ? `${state.status?.dailyStartRequired ? (state.status.mining ? "Mining now" : "Not started today") : "Mining 24/7"} · ${sub ? "renews" : "ends"} ${new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : `Ran ${new Date(start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}</p>
           </div>
         </div>
         ${minerStatus(m)}
