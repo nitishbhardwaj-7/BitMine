@@ -10,7 +10,7 @@ import { fmtHash } from '../format.js';
 import { initHeroScrollCollapse } from '../heroCollapse.js';
 import {
   tickerHTML, minerCard, claimTracksHTML, countdownText, featuredNews, newsRow, lessonRow, settlementRows,
-  liveBalanceHtml, liveSmallText, money, moneySub, minerDays, startHint, startLabel, superUpsellHTML, superPacksHTML,
+  liveBalanceHtml, liveSmallText, money, moneySub, minerDays, startHint, startLabel, superUpsellHTML, superPacksHTML, unit,
 } from './parts.js';
 import { offerHTML, promoHTML, streakHTML, boostHTML, compareHTML, maybeOpenOfferSheet } from './offers.js';
 import { gamesHTML } from './games.js';
@@ -99,6 +99,9 @@ export const screens = {
                     <div class="hero-balance-row">
                       <span class="hero-balance-value" id="heroBalanceValue" data-live="balance" data-act="cycle-unit" style="cursor: pointer;">${s ? liveBalanceHtml() : '—'}</span>
                       <button class="balance-eye-btn" data-act="toggle-balance" aria-label="Hide or show balance">${icons.eye}</button>
+                      <button class="currency-select-pill on-dark" data-act="cycle-unit" aria-label="Change balance unit">${unit().toUpperCase()}
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                      </button>
                     </div>
                     <div class="hero-balance-sub" id="heroBalanceSub" style="margin-top: 5px;">
                       <span class="pct-pill glass-light">
