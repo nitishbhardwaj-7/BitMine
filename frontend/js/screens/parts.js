@@ -261,6 +261,9 @@ export function productPrice(p) {
   return state.prices?.[id] ?? `$${p.priceDisplayUsd.toFixed(2)}`;
 }
 const superPacks = () => (state.products ?? []).filter((p) => p.kind === 'super_miner');
+const packLength = (days) => (days >= 365 ? `${Math.round(days / 365)} year${days >= 730 ? 's' : ''}` : `${days} days`);
+/** The middle pack is the one we steer people to; the others get their own hook. */
+const packTag = (i, n) => (n >= 3 && i === 1 ? 'Recommended deal' : i === 0 ? 'Best to start' : i === n - 1 ? 'Maximum power' : '');
 
 /** Shown under the claim tracks once today's free claims are used up: the next pack to unlock. */
 export function superUpsellHTML() {
@@ -290,16 +293,17 @@ export function superPacksHTML() {
       <div class="section-header-row"><span class="section-title">Super Miner</span><span class="section-link" data-go="store" data-id="super">See packs</span></div>
       <div class="super-pack-row">
         ${packs.map((p, i) => `
-          <div class="super-pack tone-${i % 3}" data-go="store" data-id="super">
+          <div class="super-pack tone-${i % 3} ${packs.length >= 3 && i === 1 ? 'recommended' : ''}" data-go="store" data-id="super">
             <div class="super-pack-top">
               <div class="super-pack-icon">${icons.rocket}</div>
-              ${owned.has(p.sku) ? '<span class="super-pack-tag">Active</span>' : i === 0 ? '<span class="super-pack-tag">Most popular</span>' : ''}
+              ${owned.has(p.sku) ? '<span class="super-pack-tag">Active</span>' : packTag(i, packs.length) ? `<span class="super-pack-tag ${i === 1 ? 'hot' : ''}">${packTag(i, packs.length)}</span>` : ''}
             </div>
             <h4>${esc(p.name)}</h4>
-            <div class="super-pack-big">+${p.claimsPerDay} <small>claims a day</small></div>
-            <p>+${p.claimGh} GH/s each · up to ${fmtHash(p.maxGhPerDay)} daily</p>
+            <div class="super-pack-big"><small>Up to</small> ${fmtHash(p.maxGhPerDay)} <small>daily</small></div>
+            <div class="super-pack-length">for ${packLength(p.durationDays)}</div>
+            <p>${p.claimsPerDay} extra claims every day · +${p.claimGh} GH/s each</p>
             <div class="super-pack-foot">
-              <span class="super-pack-price">${esc(productPrice(p))}<small> / ${p.durationDays} days</small></span>
+              <span class="super-pack-price">${esc(productPrice(p))}<small> / ${packLength(p.durationDays)}</small></span>
               <button class="btn-white claim-btn">${icons.bolt} Claim</button>
             </div>
           </div>`).join('')}
