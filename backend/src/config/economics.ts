@@ -66,7 +66,7 @@ export const PRODUCT_SEEDS: ProductSeed[] = [
   { sku: "miner_spark", kind: "miner", name: "Spark", priceDisplayUsd: 4.99, gh: 170, durationDays: 30, billing: "subscription", sortOrder: 20 },
   { sku: "miner_core", kind: "miner", name: "Core", priceDisplayUsd: 9.99, gh: 360, durationDays: 30, billing: "subscription", sortOrder: 30 },
   { sku: "miner_forge", kind: "miner", name: "Forge", priceDisplayUsd: 19.99, gh: 760, durationDays: 30, billing: "subscription", sortOrder: 40 },
-  { sku: "miner_titan", kind: "miner", name: "Titan", priceDisplayUsd: 49.99, gh: 2000, durationDays: 30, billing: "subscription", sortOrder: 50 },
+  { sku: "miner_titan", kind: "miner", name: "Titan", priceDisplayUsd: 79.99, gh: 2000, durationDays: 30, billing: "subscription", sortOrder: 50 },
   { sku: "super_basic", kind: "super_miner", name: "Super Miner", priceDisplayUsd: 4.99, claimGh: 5.5, claimsPerDay: 30, durationDays: 30, sortOrder: 60 },
   { sku: "super_pro", kind: "super_miner", name: "Super Miner Pro", priceDisplayUsd: 49, claimGh: 10, claimsPerDay: 50, durationDays: 365, sortOrder: 70 },
   { sku: "super_max", kind: "super_miner", name: "Super Miner Max", priceDisplayUsd: 249, claimGh: 20, claimsPerDay: 50, durationDays: 365, sortOrder: 80 },

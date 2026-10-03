@@ -103,7 +103,7 @@ describe("daily streak", () => {
 });
 
 describe("boost videos", () => {
-  it("doubles what is running for an hour, one at a time, three a day", async () => {
+  it("doubles what is running for an hour; another video adds an hour; three a day", async () => {
     const userId = await createUser("UTC");
     await startSession(userId, NOON);
     await expectAppError(createClaimIntent(userId, { kind: "boost" }, NOON), "nothing_to_boost");
@@ -121,13 +121,17 @@ describe("boost videos", () => {
     expect(live.gh).toMatchObject({ paid: 360, bonus: 360, total: 720 });
     expect(live.boost).toMatchObject({ used: 1, gh: 360 }); // a boost never boosts a boost
     expect(Date.parse(live.boost!.activeUntil!)).toBe(NOON + 20_000 + MS_PER_HOUR);
-    await expectAppError(createClaimIntent(userId, { kind: "boost" }, NOON + 60_000), "boost_active");
 
-    for (let i = 1; i < 3; i++) {
-      const at = NOON + i * 2 * MS_PER_HOUR;
-      const c = await createClaimIntent(userId, { kind: "boost" }, at);
-      await confirm(userId, c.claimId, at + 1000);
-    }
+    // A second video while it runs adds an hour after it; the hashpower is not doubled twice.
+    const b = await createClaimIntent(userId, { kind: "boost" }, NOON + 60_000);
+    await confirm(userId, b.claimId, NOON + 90_000);
+    const extended = await getMiningStatus(userId, NOON + 120_000);
+    expect(extended.gh).toMatchObject({ bonus: 360, total: 720 });
+    expect(Date.parse(extended.boost!.activeUntil!)).toBe(NOON + 20_000 + 2 * MS_PER_HOUR);
+    expect((await getMiningStatus(userId, NOON + 90 * 60_000)).gh.bonus).toBe(360); // the added hour
+
+    const c = await createClaimIntent(userId, { kind: "boost" }, NOON + 5 * MS_PER_HOUR);
+    await confirm(userId, c.claimId, NOON + 5 * MS_PER_HOUR + 1000);
     await expectAppError(createClaimIntent(userId, { kind: "boost" }, NOON + 8 * MS_PER_HOUR), "daily_limit_reached");
   });
 
@@ -140,6 +144,8 @@ describe("boost videos", () => {
     expect(c.gh).toBe(500);
     await confirm(userId, c.claimId, late + 1000);
     expect((await Miner.findOne({ userId, source: "boost" }).lean())!.endAt.getTime()).toBe(DAY + MS_PER_DAY);
+    // It already reaches midnight: nothing left to add.
+    await expectAppError(createClaimIntent(userId, { kind: "boost" }, late + 5000), "boost_active");
   });
 });
 

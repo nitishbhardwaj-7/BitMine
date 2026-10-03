@@ -325,7 +325,7 @@ export const actions = {
     if (status === 'skipped') return toast('Watch the whole video to claim.', 'error');
     if (status === 'unsupported') return toast('Claims work in the BitMine phone app.', 'error');
     if (status === 'verified') {
-      toast(kind === 'boost' ? `Boost on: +${fmtHash(intent.gh)} for ${state.status?.boost?.minutes ?? 60} minutes.` : `+${intent.gh} GH/s added until midnight.`);
+      toast(kind === 'boost' ? `Boost on: +${fmtHash(intent.gh)}, ${state.status?.boost?.minutes ?? 60} more minutes.` : `+${intent.gh} GH/s added until midnight.`);
       // The last free claim of the day: the moment to offer more.
       if (kind === 'regular' && state.status && state.status.claims.used >= state.status.claims.cap) openClaimsDoneSheet();
     } else if (status === 'pending') toast("Still confirming your video. It'll appear in a moment.");

@@ -181,7 +181,7 @@ DEFAULT_ECONOMICS = { rateMsatPerGhDay: 48, claimGh: 5.5, claimsPerDay: 60, minW
 PRODUCT_SEEDS = [ // paid miners: 180 days, mine 24/7, stack without limit
   { sku:"miner_mini",  name:"Mini Miner", $1.99,  gh:65   }, { sku:"miner_spark", name:"Spark", $4.99, gh:170 },
   { sku:"miner_core",  name:"Core",       $9.99,  gh:360  }, { sku:"miner_forge", name:"Forge", $19.99, gh:760 },
-  { sku:"miner_titan", name:"Titan",      $49.99, gh:2000 },
+  { sku:"miner_titan", name:"Titan",      $79.99, gh:2000 },
   // Super Miner tiers: each = its own daily claim track, tiers stack, rebuying extends
   { sku:"super_basic", "Super Miner",     $4.99, 30 days,  claimGh:5.5, claimsPerDay:30 },  // up to 165 GH/s/day
   { sku:"super_pro",   "Super Miner Pro", $49,   365 days, claimGh:10,  claimsPerDay:50 },  // up to 500 GH/s/day

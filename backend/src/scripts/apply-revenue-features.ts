@@ -30,4 +30,7 @@ for (const seed of PRODUCT_SEEDS) {
   const changed = b.modifiedCount + apple.modifiedCount + google.modifiedCount > 0;
   console.log(`${seed.sku.padEnd(15)} ${String(p?.billing).padEnd(13)} ${p?.storeIds?.google}${changed ? "   (updated)" : ""}`);
 }
+// Titan was repriced on 2026-10-03; only the old launch price is replaced, never an admin's own edit.
+const titan = await Product.updateOne({ sku: "miner_titan", priceDisplayUsd: 49.99 }, { $set: { priceDisplayUsd: 79.99 } });
+console.log(`Titan display price: ${titan.modifiedCount ? "49.99 → 79.99" : "unchanged"}`);
 await disconnectDb();

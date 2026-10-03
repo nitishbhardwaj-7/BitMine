@@ -139,13 +139,15 @@ export function boostHTML() {
   const started = Boolean(s.session?.active);
   const running = b.activeUntil && Date.parse(b.activeUntil) > Date.now();
   const done = b.used >= b.cap;
-  const label = running ? 'Boost running' : done ? 'All used' : !started ? 'Start first' : b.gh <= 0 ? 'Claim first' : `Boost +${fmtHash(b.gh)}`;
-  const disabled = running || done || !started || b.gh <= 0;
+  // While a boost runs, another video adds the same time after it (until midnight at most).
+  const toMidnight = running && Date.parse(b.activeUntil) >= Date.parse(s.nextMidnight);
+  const label = done ? 'All used' : toMidnight ? 'Boosted until midnight' : running ? `Add ${b.minutes} more minutes` : !started ? 'Start first' : b.gh <= 0 ? 'Claim first' : `Boost +${fmtHash(b.gh)}`;
+  const disabled = done || toMidnight || !started || b.gh <= 0;
   return `
     <div class="claim-track boost-track">
       <div class="claim-track-row">
         <div><div class="claim-track-title">2× Boost</div>
-          <div class="claim-track-sub">${running ? `Running now · ends in ${until(b.activeUntil)}` : `Watch a video to double your hashpower for ${b.minutes} minutes`}</div></div>
+          <div class="claim-track-sub">${running ? `Running now · ends in ${until(b.activeUntil)}${disabled ? '' : ' · watch a video to keep it going'}` : `Watch a video to double your hashpower for ${b.minutes} minutes`}</div></div>
         <span class="claim-count">${b.used}/${b.cap}</span>
       </div>
       <div class="claim-track-row">

@@ -27,7 +27,7 @@ Stacking several packs **may** reach it faster; that's intended (no paid cap).
 | Spark | $4.99 | 170 | 8.2 | 245 | 4.9% |
 | Core | $9.99 | 360 | 17.3 | 518 | 5.2% |
 | Forge | $19.99 | 760 | 36.5 | 1,094 | 5.5% |
-| Titan | $49.99 | 2,000 | 96 | 2,880 | 5.8% |
+| Titan | $79.99 | 2,000 | 96 | 2,880 | 3.6% |
 
 ## Days to reach 2,500 sats (worst case: every claim mines 24h)
 | User | Sats/day | Days |

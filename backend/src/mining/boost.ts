@@ -1,6 +1,7 @@
 /**
  * Boost videos: one rewarded video doubles the hashpower the user has running
- * right now (capped) for a short while. It is granted like any ad claim
+ * right now (capped) for a short while; a video watched while a boost is
+ * running adds the same time on after it. It is granted like any ad claim
  * (claims/service.ts, kind "boost") as a miner that ends when the boost does.
  */
 import type { Types } from "mongoose";

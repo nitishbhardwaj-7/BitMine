@@ -28,7 +28,7 @@ Inputs: [BITPLAY_BACKEND_ANALYSIS.md](BITPLAY_BACKEND_ANALYSIS.md), [BITPLAY_BUG
 | · Super Miner Pro | **$49 / 365 days**: +50 claims/day × 10 GH/s = up to 500 GH/s/day |
 | · Super Miner Max | **$249 / 365 days**: +50 claims/day × 20 GH/s = up to 1 TH/s/day |
 | Paid miners | **30 days** (renewed by buying again), mine 24/7, **no Start needed**, stack without limit |
-| Paid packs | Mini 65 GH/s $1.99 · Spark 170 GH/s $4.99 · Core 360 GH/s $9.99 · Forge 760 GH/s $19.99 · Titan 2,000 GH/s $49.99 |
+| Paid packs | Mini 65 GH/s $1.99 · Spark 170 GH/s $4.99 · Core 360 GH/s $9.99 · Forge 760 GH/s $19.99 · Titan 2,000 GH/s $79.99 |
 | Referral | Referrer earns 5% of each referee's *mining* credits, capped at **5 sats/day per referrer** (total across all referees) |
 | Min withdrawal | **2,500 sats** |
 | 15-day guard | Admin config validation warns if one Titan + all 60 free claims + one Super Miner Max could reach the minimum in under 15 days (owning several paid tiers or packs may be faster, which is intended) |

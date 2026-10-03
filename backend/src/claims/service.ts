@@ -44,7 +44,12 @@ async function resolveTrack(userId: Types.ObjectId, req: Exclude<ClaimRequest, {
     // A boost video doubles the hashpower running right now (up to a limit) for a while.
     const g = await getGrowth();
     if (g.boostAdsPerDay <= 0) throw notFound("Boost");
-    if (await activeBoostUntil(userId, now)) throw new AppError(409, "boost_active", "Your boost is still running. Come back when it ends.");
+    // Watching another video while a boost runs adds more time after it, up to midnight.
+    const session = await currentSession(userId, now);
+    const runningUntil = await activeBoostUntil(userId, now);
+    if (session && runningUntil && runningUntil >= session.endsAt.getTime()) {
+      throw new AppError(409, "boost_active", "Your boost already runs until midnight.");
+    }
     const gh = await boostGhFor(userId, now, g);
     if (gh <= 0) throw new AppError(409, "nothing_to_boost", "Claim some hashpower first, then boost it.");
     return { track: BOOST_TRACK, gh, cap: g.boostAdsPerDay };
@@ -197,6 +202,7 @@ export async function verifySsvReward(reward: SsvReward, now = Date.now()): Prom
 
   let cap: number;
   let track: string;
+  let startAt = now;
   let endAt = session.endsAt;
   if (claim.kind === "regular") {
     cap = (await getEconomics(new Date(now))).claimsPerDay;
@@ -205,7 +211,9 @@ export async function verifySsvReward(reward: SsvReward, now = Date.now()): Prom
     const g = await getGrowth();
     cap = g.boostAdsPerDay;
     track = BOOST_TRACK;
-    endAt = new Date(Math.min(session.endsAt.getTime(), now + g.boostMinutes * 60_000));
+    // A boost watched while one is running is added on after it.
+    startAt = Math.min(session.endsAt.getTime(), Math.max(now, (await activeBoostUntil(claim.userId, now)) ?? 0));
+    endAt = new Date(Math.min(session.endsAt.getTime(), startAt + g.boostMinutes * 60_000));
   } else {
     const product = await Product.findById(claim.tierProductId).lean();
     if (!product?.claimsPerDay) {
@@ -249,7 +257,7 @@ export async function verifySsvReward(reward: SsvReward, now = Date.now()): Prom
             userId: claim.userId,
             source: claim.kind === "regular" ? "claim" : claim.kind === "boost" ? "boost" : "super_claim",
             gh: claim.gh,
-            startAt: new Date(now),
+            startAt: new Date(startAt),
             endAt,
             claimId: claim._id,
             productId: claim.tierProductId,
