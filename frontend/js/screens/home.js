@@ -114,7 +114,7 @@ export const screens = {
             <div class="action-shortcut-group hero-stagger-6" id="heroActionGroup">
               <div class="action-shortcut-item" data-act="withdraw"><div class="action-circle-btn">${icons.up}</div><span class="action-shortcut-label">Withdraw</span></div>
               <div class="action-shortcut-item" data-go="mining"><div class="action-circle-btn">${icons.bolt}</div><span class="action-shortcut-label">Boost</span></div>
-              <div class="action-shortcut-item" data-go="store"><div class="action-circle-btn">${icons.plus}</div><span class="action-shortcut-label">Buy</span></div>
+              <div class="action-shortcut-item" data-go="store"><div class="action-circle-btn">${icons.plus}</div><span class="action-shortcut-label">Create miner</span></div>
               <div class="action-shortcut-item" data-act="more"><div class="action-circle-btn">${icons.more}</div><span class="action-shortcut-label">More</span></div>
             </div>
 
