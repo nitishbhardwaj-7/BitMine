@@ -1,3 +1,4 @@
+import { getGrowth } from "../settings/growth.js";
 import { Router, type Request } from "express";
 import { AppError } from "../lib/errors.js";
 import { AdminAudit, AdminUser, AppConfig, Faq, Product, Settings } from "../models/index.js";
@@ -88,10 +89,11 @@ export function configPages() {
       ${products.map((p) => html`<div class="card"><form method="post" action="/admin/products/${p.sku}" class="form">${csrf}
         <h2>${p.name} <span class="mono muted">${p.sku}</span> ${statusPill(p.active ? "active" : "failed")}</h2>
         <div class="row"><label>Name<input name="name" value="${p.name}" required></label><label>Display price (USD)<input name="priceDisplayUsd" value="${p.priceDisplayUsd}" required></label><label>Duration (days)<input name="durationDays" value="${p.durationDays}" required></label></div>
-        ${p.kind === "miner"
-          ? html`<div class="row"><label>GH/s<input name="gh" value="${p.gh ?? ""}" required></label></div>`
+        ${p.kind !== "super_miner"
+          ? html`<div class="row"><label>GH/s<input name="gh" value="${p.gh ?? ""}" required></label>${p.kind === "bundle" ? html`<label>Includes Super Miner tier (SKU)<input name="bundleSuperSku" value="${p.bundleSuperSku ?? ""}"></label>` : ""}</div>`
           : html`<div class="row"><label>GH/s per claim<input name="claimGh" value="${p.claimGh ?? ""}" required></label><label>Claims per day<input name="claimsPerDay" value="${p.claimsPerDay ?? ""}" required></label></div>`}
         <div class="row"><label>Apple product ID<input name="apple" value="${p.storeIds?.apple ?? ""}"></label><label>Google product ID<input name="google" value="${p.storeIds?.google ?? ""}"></label></div>
+        <div class="row"><label>"Was" price shown struck through (USD, empty = none)<input name="listPriceUsd" value="${p.listPriceUsd ?? ""}"></label><label>Billing<select name="billing"><option value="one_time" ${p.billing === "subscription" ? "" : "selected"}>One-time purchase</option><option value="subscription" ${p.billing === "subscription" ? "selected" : ""}>Auto-renewing subscription</option></select></label></div>
         <div class="row"><label>Order<input name="sortOrder" value="${p.sortOrder ?? 0}"></label><label>Status<select name="active"><option value="yes" ${p.active ? "selected" : ""}>Active (sold in app)</option><option value="no" ${p.active ? "" : "selected"}>Hidden</option></select></label></div>
         <div><button class="btn">Save ${p.name}</button></div></form></div>`)}`);
   });
@@ -108,7 +110,13 @@ export function configPages() {
       sortOrder: num(req, "sortOrder"),
       active: f(req, "active") === "yes",
     };
-    if (p.kind === "miner") set.gh = num(req, "gh");
+    set.billing = f(req, "billing") === "subscription" ? "subscription" : "one_time";
+    const was = Number(f(req, "listPriceUsd"));
+    const unset: Record<string, 1> = {};
+    if (f(req, "listPriceUsd") && Number.isFinite(was) && was > 0) set.listPriceUsd = was;
+    else unset.listPriceUsd = 1;
+    if (p.kind === "bundle") set.bundleSuperSku = f(req, "bundleSuperSku");
+    if (p.kind !== "super_miner") set.gh = num(req, "gh");
     else Object.assign(set, { claimGh: num(req, "claimGh"), claimsPerDay: num(req, "claimsPerDay") });
     if (!set.name || (set.durationDays as number) < 1) throw new AppError(400, "invalid", "Name and a duration of at least 1 day are required.");
     for (const store of ["apple", "google"] as const) {
@@ -117,14 +125,15 @@ export function configPages() {
         throw new AppError(409, "duplicate_store_id", `Another product already uses the ${store} ID "${id}".`);
       }
     }
-    await Product.updateOne({ sku: p.sku }, { $set: set });
+    await Product.updateOne({ sku: p.sku }, { $set: set, ...(Object.keys(unset).length ? { $unset: unset } : {}) });
     await audit(req.admin!.id, "product.update", { type: "product", id: p.sku, details: set }, req.ip);
     back(res, "/admin/products", { ok: `${set.name} saved.` });
   }));
 
   // ── FAQs and app config ──
   r.get("/content", async (req, res) => {
-    const [faqs, cfg] = await Promise.all([Faq.find().sort({ order: 1, createdAt: 1 }).lean(), AppConfig.findById("app").lean()]);
+    const [faqs, cfg, g] = await Promise.all([Faq.find().sort({ order: 1, createdAt: 1 }).lean(), AppConfig.findById("app").lean(), getGrowth()]);
+    const promoEnds = cfg?.promo?.endsAt ? cfg.promo.endsAt.toISOString().slice(0, 16) : "";
     const csrf = csrfField(req.admin!.csrf);
     page(req, res, "FAQs & app", html`<h1>FAQs & app config</h1>
       <div class="card"><h2>App config</h2><form method="post" action="/admin/content/app" class="form">${csrf}
@@ -138,6 +147,19 @@ export function configPages() {
         <label>Rewarded eCPM estimate (USD per 1,000 views, for the dashboard)<input name="adEcpmUsd" value="${cfg?.adEcpmUsd ?? 4}"></label></div>
         <div class="row"><label>Support email<input name="supportEmail" value="${cfg?.supportEmail ?? ""}"></label><label>Terms URL<input name="termsUrl" value="${cfg?.termsUrl ?? ""}"></label><label>Privacy URL<input name="privacyUrl" value="${cfg?.privacyUrl ?? ""}"></label></div>
         <div><button class="btn">Save app config</button></div></form></div>
+      <div class="card"><h2>Perks & bonuses</h2><p class="muted">Applies as soon as it is saved. Streak and boost hashpower earn sats like any other, so keep them small next to what an ad view pays.</p>
+        <form method="post" action="/admin/content/growth" class="form">${csrf}
+        <div class="row"><label>Paid-miner owners skip the start videos<select name="paidSkipStartAds"><option value="1" ${g.paidSkipStartAds ? "selected" : ""}>Yes: one tap starts their day</option><option value="0" ${g.paidSkipStartAds ? "" : "selected"}>No: everyone watches</option></select></label>
+        <label>Starter offer shown to new accounts for (hours, 0 = off)<input name="offerHours" value="${g.offerHours}" required></label></div>
+        <div class="row"><label>Streak bonus every (days in a row, 0 = off)<input name="streakDays" value="${g.streakDays}" required></label><label>Streak bonus (GH/s until midnight)<input name="streakBonusGh" value="${g.streakBonusGh}" required></label></div>
+        <div class="row"><label>Boost videos per day (0 = off)<input name="boostAdsPerDay" value="${g.boostAdsPerDay}" required></label><label>Boost lasts (minutes)<input name="boostMinutes" value="${g.boostMinutes}" required></label><label>Most GH/s one boost can add<input name="boostMaxGh" value="${g.boostMaxGh}" required></label></div>
+        <div><button class="btn">Save perks</button></div></form></div>
+      <div class="card"><h2>Sale banner</h2><p class="muted">Shows a countdown banner on Home and in the Store until the end time. The price itself is whatever the store charges: change it in Play Console / App Store Connect, and set the product's "was" price under Products.</p>
+        <form method="post" action="/admin/content/promo" class="form">${csrf}
+        <div class="row"><label>Status<select name="active"><option value="1" ${cfg?.promo?.active ? "selected" : ""}>On</option><option value="0" ${cfg?.promo?.active ? "" : "selected"}>Off</option></select></label><label>Ends (UTC)<input type="datetime-local" name="endsAt" value="${promoEnds}"></label><label>Badge (e.g. -30%)<input name="badge" maxlength="12" value="${cfg?.promo?.badge ?? ""}"></label></div>
+        <label>Title<input name="title" maxlength="50" value="${cfg?.promo?.title ?? ""}"></label><label>Text<input name="body" maxlength="120" value="${cfg?.promo?.body ?? ""}"></label>
+        <label>Product on sale (SKU, empty = whole store)<input name="sku" value="${cfg?.promo?.sku ?? ""}"></label>
+        <div><button class="btn">Save sale banner</button></div></form></div>
       <div class="card"><h2>FAQs</h2>
         ${faqs.map((q) => html`<form method="post" action="/admin/content/faq/${String(q._id)}" class="form" style="border-top:1px solid var(--line);padding-top:10px">${csrf}
           <div class="row"><label style="flex:4">Question<input name="question" value="${q.question}" required></label><label>Order<input name="order" value="${q.order ?? 0}"></label>
@@ -166,6 +188,35 @@ export function configPages() {
     await AppConfig.updateOne({ _id: "app" }, { $set: set }, { upsert: true });
     await audit(req.admin!.id, "app_config.update", { type: "app_config", id: "app", details: set }, req.ip);
     back(res, "/admin/content", { ok: "App config saved. The app picks it up on next start." });
+  }));
+  r.post("/content/growth", action(async (req, res) => {
+    const growth = {
+      paidSkipStartAds: f(req, "paidSkipStartAds") === "1",
+      offerHours: num(req, "offerHours"),
+      streakDays: Math.floor(num(req, "streakDays")),
+      streakBonusGh: num(req, "streakBonusGh"),
+      boostAdsPerDay: Math.floor(num(req, "boostAdsPerDay")),
+      boostMinutes: Math.floor(num(req, "boostMinutes")),
+      boostMaxGh: num(req, "boostMaxGh"),
+    };
+    for (const [k, v] of Object.entries(growth)) {
+      if (typeof v === "number" && (!Number.isFinite(v) || v < 0)) throw new AppError(400, "invalid", `${k} must be zero or more.`);
+    }
+    if (growth.boostAdsPerDay > 0 && growth.boostMinutes < 1) throw new AppError(400, "invalid", "A boost lasts at least 1 minute.");
+    await AppConfig.updateOne({ _id: "app" }, { $set: { growth } }, { upsert: true });
+    await audit(req.admin!.id, "growth.update", { type: "app_config", id: "app", details: growth }, req.ip);
+    back(res, "/admin/content", { ok: "Perks saved." });
+  }));
+  r.post("/content/promo", action(async (req, res) => {
+    const endsAt = f(req, "endsAt") ? new Date(`${f(req, "endsAt")}:00Z`) : null;
+    const promo = { active: f(req, "active") === "1", title: f(req, "title").slice(0, 50), body: f(req, "body").slice(0, 120), badge: f(req, "badge").slice(0, 12), sku: f(req, "sku"), endsAt };
+    if (promo.active && (!promo.title || !endsAt || Number.isNaN(endsAt.getTime()) || endsAt.getTime() <= Date.now())) {
+      throw new AppError(400, "invalid", "A sale needs a title and an end time in the future.");
+    }
+    if (promo.sku && !(await Product.exists({ sku: promo.sku }))) throw new AppError(400, "invalid", `No product has the SKU "${promo.sku}".`);
+    await AppConfig.updateOne({ _id: "app" }, { $set: { promo } }, { upsert: true });
+    await audit(req.admin!.id, "promo.update", { type: "app_config", id: "app", details: promo }, req.ip);
+    back(res, "/admin/content", { ok: promo.active ? "Sale banner is on." : "Sale banner is off." });
   }));
   r.post("/content/faq", action(async (req, res) => {
     const max = await Faq.findOne().sort({ order: -1 }).lean();

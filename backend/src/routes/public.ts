@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { AppConfig, Faq } from "../models/index.js";
 import { getEconomics } from "../settings/economics.js";
+import { activePromo } from "../settings/growth.js";
 import { notFound } from "../lib/errors.js";
 import type { MarketCache } from "../content/market.js";
 import { listNews } from "../content/news.js";
@@ -51,6 +52,7 @@ export function publicRouter(opts: { market?: MarketCache } = {}) {
       supportEmail: cfg?.supportEmail,
       termsUrl: cfg?.termsUrl,
       privacyUrl: cfg?.privacyUrl,
+      promo: activePromo(cfg),
       economics: {
         rateMsatPerGhDay: eco.rateMsatPerGhDay,
         claimGh: eco.claimGh,

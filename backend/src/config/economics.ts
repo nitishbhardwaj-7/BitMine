@@ -34,7 +34,7 @@ export const DEFAULT_ECONOMICS: EconomicsSettings = {
   withdrawalAutoApproveMaxSats: 0,
 };
 
-export type ProductKind = "miner" | "super_miner";
+export type ProductKind = "miner" | "super_miner" | "bundle";
 
 export interface ProductSeed {
   sku: string;
@@ -47,18 +47,26 @@ export interface ProductSeed {
   /** super_miner only */
   claimGh?: number;
   claimsPerDay?: number;
+  /** "subscription" = auto-renewing in the store; each paid period extends the tier. Default one-time. */
+  billing?: "one_time" | "subscription";
+  /** The "was" price shown struck through next to the real one (sales and bundles). */
+  listPriceUsd?: number;
+  /** bundle only: the Super Miner tier included alongside the bundle's miner. */
+  bundleSuperSku?: string;
   sortOrder: number;
 }
 
 // Paid miners last 30 days and are renewed by buying the pack again (each purchase is its
 // own miner, so renewing early stacks). Only Super Miner Pro and Max run for 365 days.
 export const PRODUCT_SEEDS: ProductSeed[] = [
+  // First-purchase offer for new accounts: a Mini Miner plus Super Miner for 30 days.
+  { sku: "starter_bundle", kind: "bundle", name: "Starter Pack", priceDisplayUsd: 3.99, listPriceUsd: 6.98, gh: 65, durationDays: 30, bundleSuperSku: "super_basic", sortOrder: 5 },
   { sku: "miner_mini", kind: "miner", name: "Mini Miner", priceDisplayUsd: 1.99, gh: 65, durationDays: 30, sortOrder: 10 },
   { sku: "miner_spark", kind: "miner", name: "Spark", priceDisplayUsd: 4.99, gh: 170, durationDays: 30, sortOrder: 20 },
   { sku: "miner_core", kind: "miner", name: "Core", priceDisplayUsd: 9.99, gh: 360, durationDays: 30, sortOrder: 30 },
   { sku: "miner_forge", kind: "miner", name: "Forge", priceDisplayUsd: 19.99, gh: 760, durationDays: 30, sortOrder: 40 },
   { sku: "miner_titan", kind: "miner", name: "Titan", priceDisplayUsd: 49.99, gh: 2000, durationDays: 30, sortOrder: 50 },
-  { sku: "super_basic", kind: "super_miner", name: "Super Miner", priceDisplayUsd: 4.99, claimGh: 5.5, claimsPerDay: 30, durationDays: 30, sortOrder: 60 },
+  { sku: "super_basic", kind: "super_miner", name: "Super Miner", priceDisplayUsd: 4.99, claimGh: 5.5, claimsPerDay: 30, durationDays: 30, billing: "subscription", sortOrder: 60 },
   { sku: "super_pro", kind: "super_miner", name: "Super Miner Pro", priceDisplayUsd: 49, claimGh: 10, claimsPerDay: 50, durationDays: 365, sortOrder: 70 },
   { sku: "super_max", kind: "super_miner", name: "Super Miner Max", priceDisplayUsd: 249, claimGh: 20, claimsPerDay: 50, durationDays: 365, sortOrder: 80 },
 ];
@@ -68,7 +76,8 @@ export const PRODUCT_SEEDS: ProductSeed[] = [
  * Play Console. The same id works in both stores. Admins can change them later.
  */
 export function defaultStoreId(sku: string): string {
-  return `bitmine_${sku}`;
+  const monthly = PRODUCT_SEEDS.find((p) => p.sku === sku)?.billing === "subscription";
+  return `bitmine_${sku}${monthly ? "_monthly" : ""}`;
 }
 
 /**

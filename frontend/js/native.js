@@ -54,6 +54,40 @@ export async function showRewardedAd({ adUnitId, userId, claimId, testDevices = 
   return Boolean(reward);
 }
 
+// ── banner ads ────────────────────────────────────────────────────────────
+// Google's sample ad units only ever show "Test Ad" banners: never put those in front of users.
+const SAMPLE_UNIT = 'ca-app-pub-3940256099942544';
+let bannerWanted = false;
+let bannerShown = false;
+let bannerMargin = 0;
+let bannerQueue = Promise.resolve();
+
+/**
+ * Shows or hides the bottom banner. Calls arrive on every screen render, so
+ * they are cheap when nothing changes and run one after another when it does.
+ */
+export function setBanner(show, { adUnitId, testDevices = [], margin = 0 } = {}) {
+  if (!isNative) return;
+  const usable = Boolean(adUnitId) && (!adUnitId.startsWith(SAMPLE_UNIT) || import.meta.env?.DEV === true);
+  bannerWanted = Boolean(show && usable);
+  if (bannerWanted === bannerShown && (!bannerWanted || margin === bannerMargin)) return;
+  bannerQueue = bannerQueue
+    .then(async () => {
+      if (bannerWanted === bannerShown && (!bannerWanted || margin === bannerMargin)) return;
+      const { AdMob } = await admob(testDevices);
+      if (bannerShown) {
+        await AdMob.removeBanner();
+        bannerShown = false;
+      }
+      if (bannerWanted) {
+        await withTimeout(AdMob.showBanner({ adId: adUnitId, adSize: 'ADAPTIVE_BANNER', position: 'BOTTOM_CENTER', margin }), 15_000, 'banner did not load');
+        bannerShown = true;
+        bannerMargin = margin;
+      }
+    })
+    .catch(() => undefined); // an unfilled banner is not an error worth showing
+}
+
 // ── store purchases ───────────────────────────────────────────────────────
 let purchasesReady = false;
 
@@ -71,21 +105,32 @@ async function purchases(userId) {
 }
 
 /** Store prices for our products, keyed by store product id (localised, e.g. "₹399"). */
-export async function storePrices(userId, storeIds) {
-  if (!isNative || !storeIds.length) return {};
+export async function storePrices(userId, storeIds, subscriptionIds = []) {
+  if (!isNative || !(storeIds.length + subscriptionIds.length)) return {};
+  const out = {};
   try {
     const { Purchases } = await purchases(userId);
-    const { products } = await Purchases.getProducts({ productIdentifiers: storeIds, type: 'NON_SUBSCRIPTION' });
-    return Object.fromEntries(products.map((p) => [p.identifier, p.priceString]));
+    if (storeIds.length) {
+      const { products } = await Purchases.getProducts({ productIdentifiers: storeIds, type: 'NON_SUBSCRIPTION' });
+      for (const p of products) out[p.identifier] = p.priceString;
+    }
+    if (subscriptionIds.length) {
+      const { products } = await Purchases.getProducts({ productIdentifiers: subscriptionIds, type: 'SUBSCRIPTION' });
+      for (const p of products) out[subscriptionId(p.identifier)] = p.priceString;
+    }
   } catch {
-    return {};
+    /* keep whatever loaded; the list prices cover the rest */
   }
+  return out;
 }
 
+/** Google Play names a subscription "productId:basePlanId"; ours are keyed by the product id. */
+const subscriptionId = (identifier) => String(identifier).split(':')[0];
+
 /** Buys one product. Resolves true when the store completed the purchase (the server then verifies it). */
-export async function buyProduct(userId, storeId) {
+export async function buyProduct(userId, storeId, subscription = false) {
   const { Purchases } = await purchases(userId);
-  const { products } = await Purchases.getProducts({ productIdentifiers: [storeId], type: 'NON_SUBSCRIPTION' });
+  const { products } = await Purchases.getProducts({ productIdentifiers: [storeId], type: subscription ? 'SUBSCRIPTION' : 'NON_SUBSCRIPTION' });
   if (!products.length) throw new Error('This product is not available in your store yet.');
   try {
     await Purchases.purchaseStoreProduct({ product: products[0] });

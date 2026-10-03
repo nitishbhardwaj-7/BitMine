@@ -190,7 +190,7 @@ function notificationsScreen() {
         <div class="grouped-list-section">
           ${n == null ? `<div style="padding: 14px;">${state.errors.notifications ? errorCard(state.errors.notifications, 'reload') : skeleton(5)}</div>`
             : n.notifications.length ? n.notifications.map((x) => `
-              <div class="notif-row ${x.read ? '' : 'unread'}" data-act="open-notification" data-id="${esc(x.id)}" data-kind="${esc(x.kind)}" data-ticket="${esc(x.data?.ticketId ?? '')}" data-miner="${esc(x.data?.minerId ?? '')}">
+              <div class="notif-row ${x.read ? '' : 'unread'}" data-act="open-notification" data-id="${esc(x.id)}" data-kind="${esc(x.kind)}" data-ticket="${esc(x.data?.ticketId ?? '')}" data-miner="${esc(x.data?.minerId ?? '')}" data-dest="${esc(x.data?.go ?? '')}" data-section="${esc(x.data?.section ?? '')}">
                 <div class="grouped-item-icon">${KIND_ICON[x.kind] ?? icons.bell}</div>
                 <div style="flex: 1;"><h4>${esc(x.title)}</h4><p>${esc(x.body)}</p><time>${timeAgo(x.createdAt)}</time></div>
                 ${x.read ? '' : '<span class="unread-dot"></span>'}
@@ -429,6 +429,7 @@ export const actions = {
     const kind = el.dataset.kind;
     if (kind === 'support_reply' && el.dataset.ticket) return ctx.go('ticket', { id: el.dataset.ticket });
     if (kind === 'miner_expiry' && el.dataset.miner) return ctx.go('miner-details', { id: el.dataset.miner });
+    if (el.dataset.dest === 'store') return ctx.go('store', el.dataset.section ? { id: el.dataset.section } : {});
     if (kind.startsWith('withdrawal')) return ctx.go('wallet');
     if (kind === 'mining_reminder') return ctx.go('mining');
   },

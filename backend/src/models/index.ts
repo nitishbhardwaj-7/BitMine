@@ -43,6 +43,8 @@ const userSchema = new Schema(
       withdrawals: { type: Boolean, default: true },
       support: { type: Boolean, default: true },
     },
+    /** Consecutive local days mining was started (mining/streak.ts). */
+    streak: { count: { type: Number, default: 0 }, lastDate: String },
     /** Reasons an admin should look before paying this user (e.g. a refunded purchase). */
     reviewFlags: {
       type: [{ reason: String, refType: String, refId: ObjectId, createdAt: Date, _id: false }],
@@ -87,9 +89,12 @@ settingsSchema.index({ key: 1, effectiveAt: 1 });
 const productSchema = new Schema(
   {
     sku: { type: String, required: true, unique: true },
-    kind: { type: String, enum: ["miner", "super_miner"], required: true },
+    kind: { type: String, enum: ["miner", "super_miner", "bundle"], required: true },
     name: { type: String, required: true },
     priceDisplayUsd: { type: Number, required: true },
+    listPriceUsd: Number,
+    billing: { type: String, enum: ["one_time", "subscription"], default: "one_time" },
+    bundleSuperSku: String,
     durationDays: { type: Number, required: true },
     gh: Number,
     claimGh: Number,
@@ -105,7 +110,7 @@ const productSchema = new Schema(
 const minerSchema = new Schema(
   {
     userId: { type: ObjectId, ref: "User", required: true },
-    source: { type: String, enum: ["paid", "claim", "super_claim", "admin_grant"], required: true },
+    source: { type: String, enum: ["paid", "claim", "super_claim", "admin_grant", "boost", "streak"], required: true },
     gh: { type: Number, required: true, min: 0 },
     startAt: { type: Date, required: true },
     endAt: { type: Date, required: true },
@@ -160,7 +165,7 @@ const claimSchema = new Schema(
   {
     userId: { type: ObjectId, ref: "User", required: true },
     /** "start" = a video that counts towards starting the day's mining (no hashpower of its own). */
-    kind: { type: String, enum: ["regular", "super", "start"], required: true },
+    kind: { type: String, enum: ["regular", "super", "start", "boost"], required: true },
     tierProductId: { type: ObjectId, ref: "Product" },
     gh: { type: Number, required: true },
     localDate: { type: String, required: true },
@@ -344,6 +349,18 @@ const appConfigSchema = new Schema(
     admobTestDevices: { type: [String], default: [] },
     /** Estimated rewarded eCPM (USD per 1,000 views) for the dashboard's ad revenue estimate. */
     adEcpmUsd: { type: Number, default: 4 },
+    /** Perks, bonuses and offers (settings/growth.ts holds the defaults). */
+    growth: {
+      paidSkipStartAds: Boolean,
+      streakDays: Number,
+      streakBonusGh: Number,
+      boostAdsPerDay: Number,
+      boostMinutes: Number,
+      boostMaxGh: Number,
+      offerHours: Number,
+    },
+    /** A limited-time sale banner shown on Home and in the Store. */
+    promo: { active: Boolean, title: String, body: String, badge: String, sku: String, endsAt: Date },
     supportEmail: String,
     termsUrl: String,
     privacyUrl: String,

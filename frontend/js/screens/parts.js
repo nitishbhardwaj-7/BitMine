@@ -143,7 +143,8 @@ export function startVideosLeft() {
   const s = state.status;
   if (!s?.dailyStartRequired) return 0;
   if (s.session) return s.session.active ? 0 : Math.max(0, s.session.adsRequired - s.session.adsWatched);
-  return state.config?.economics?.startAds ?? 0;
+  // Per user: owners of a paid miner may start with one tap.
+  return s.startAdsRequired ?? state.config?.economics?.startAds ?? 0;
 }
 /** One line explaining what Start does right now. */
 export function startHint() {

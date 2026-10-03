@@ -2,9 +2,10 @@
  * Notification jobs:
  *  - runOutbox (every 30 s): pushes pending notifications to the user's devices
  *  - runReminders (hourly): "Start mining" at 10:00 local if today's session
- *    isn't started, and a heads-up 3 days before a paid miner stops
+ *    isn't started, and renewal reminders 3 days before, 1 day before and
+ *    when a paid miner or a Super Miner tier ends
  */
-import { Miner, Notification, Product, PushToken, Session, User } from "../models/index.js";
+import { Miner, Notification, Product, PushToken, Session, SuperEntitlement, User } from "../models/index.js";
 import { logger } from "../lib/logger.js";
 import { MS_PER_DAY, localDate } from "../lib/time.js";
 import { effectiveTimezone } from "../users/timezone.js";
@@ -95,23 +96,59 @@ export async function runReminders(now = Date.now()) {
     }
   }
 
-  // Paid miners ending within 3 days: one heads-up per miner.
-  const ending = await Miner.find({
+  // Renewal reminders. Each stage is sent once (dedupeKey); a tap opens the Store.
+  const products = new Map((await Product.find().select({ name: 1, kind: 1, billing: 1 }).lean()).map((p) => [String(p._id), p]));
+  const stageOf = (endsAt: number): "3d" | "1d" | "ended" | null => {
+    const left = endsAt - now;
+    if (left <= 0) return left > -MS_PER_DAY ? "ended" : null;
+    if (left <= MS_PER_DAY) return "1d";
+    return left <= 3 * MS_PER_DAY ? "3d" : null;
+  };
+  const when = { "3d": "in 3 days", "1d": "tomorrow" } as const;
+
+  const miners = await Miner.find({
     source: "paid",
     revokedAt: null,
-    endAt: { $gt: new Date(now), $lte: new Date(now + 3 * MS_PER_DAY) },
+    endAt: { $gt: new Date(now - MS_PER_DAY), $lte: new Date(now + 3 * MS_PER_DAY) },
   })
     .select({ userId: 1, gh: 1, endAt: 1, productId: 1 })
     .lean();
-  for (const m of ending) {
-    const product = m.productId ? await Product.findById(m.productId).select({ name: 1 }).lean() : null;
-    const days = Math.max(1, Math.ceil((m.endAt.getTime() - now) / MS_PER_DAY));
+  for (const m of miners) {
+    const stage = stageOf(m.endAt.getTime());
+    if (!stage) continue;
+    const name = products.get(String(m.productId))?.name ?? "Your miner";
+    const gh = m.gh.toLocaleString("en-US");
     const created = await notify(m.userId, {
       kind: "miner_expiry",
-      title: `${product?.name ?? "Your miner"} ends soon`,
-      body: `Your ${product?.name ?? "miner"} (${m.gh.toLocaleString("en-US")} GH/s) stops mining in ${days} day${days === 1 ? "" : "s"}. Renew it in the Store to keep mining.`,
-      dedupeKey: `miner_expiry:${m._id}`,
-      data: { minerId: String(m._id) },
+      title: stage === "ended" ? `${name} has stopped mining` : `${name} stops ${when[stage]}`,
+      body:
+        stage === "ended"
+          ? `Your ${name} (${gh} GH/s) has ended. Renew it in the Store to get your hashpower back.`
+          : `Your ${name} (${gh} GH/s) stops mining ${when[stage]}. Renew it now and keep earning without a gap.`,
+      // The 3-day key is the one used before the other stages existed.
+      dedupeKey: stage === "3d" ? `miner_expiry:${m._id}` : `miner_expiry:${m._id}:${stage}`,
+      data: { minerId: String(m._id), go: "store" },
+    });
+    if (created) expiry++;
+  }
+
+  const tiers = await SuperEntitlement.find({ activeUntil: { $gt: new Date(now - MS_PER_DAY), $lte: new Date(now + 3 * MS_PER_DAY) } }).lean();
+  for (const e of tiers) {
+    const product = products.get(String(e.productId));
+    const stage = stageOf(e.activeUntil.getTime());
+    if (!stage) continue;
+    // A subscription renews itself: only tell the user once it has actually lapsed.
+    if (product?.billing === "subscription" && stage !== "ended") continue;
+    const name = product?.name ?? "Super Miner";
+    const created = await notify(e.userId, {
+      kind: "miner_expiry",
+      title: stage === "ended" ? `${name} has ended` : `${name} ends ${when[stage]}`,
+      body:
+        stage === "ended"
+          ? `Your extra daily claims are gone. Unlock ${name} again in the Store to get them back.`
+          : `Your extra daily claims end ${when[stage]}. Extend ${name} now to keep them.`,
+      dedupeKey: `super_expiry:${e._id}:${e.activeUntil.getTime()}:${stage}`,
+      data: { go: "store", section: "super" },
     });
     if (created) expiry++;
   }

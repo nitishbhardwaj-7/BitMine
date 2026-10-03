@@ -3,7 +3,7 @@
  * only after the day's session is started by watching rewarded videos.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { Balance, Ledger, Miner, Session } from "../models/index.js";
+import { AppConfig, Balance, Ledger, Miner, Session } from "../models/index.js";
 import { clearTestDb, startTestDb, stopTestDb } from "../test/mongo.js";
 import { createUser } from "../test/fixtures.js";
 import { seedAll } from "../db/seed.js";
@@ -147,6 +147,8 @@ describe("hourly credits with the rule", () => {
 
   it("and earns from the moment the day is started until midnight, then stops", async () => {
     await enableRule(DAY - MS_PER_DAY, 1);
+    // Without the paid-miner perk, owners watch the start video like everyone else.
+    await AppConfig.updateOne({ _id: "app" }, { $set: { "growth.paidSkipStartAds": false } });
     const userId = await titanOwner();
     const tap = DAY + 9 * MS_PER_HOUR;
     await startSession(userId, tap);

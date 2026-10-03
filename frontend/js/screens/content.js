@@ -229,9 +229,9 @@ function faqScreen() {
 }
 
 export const screens = {
-  market: { tab: 'market', keys: ['market'], load: (ctx) => ctx.refresh('market'), render: marketScreen },
+  market: { tab: 'market', banner: true, keys: ['market'], load: (ctx) => ctx.refresh('market'), render: marketScreen },
   rewards: { tab: 'profile', keys: ['referrals', 'me', 'market'], load: (ctx) => ctx.refresh('referrals'), render: rewardsScreen },
-  news: { tab: 'home', keys: ['news'], load: () => loadKeyed('news', newsCategory), render: newsScreen },
+  news: { tab: 'home', banner: true, keys: ['news'], load: () => loadKeyed('news', newsCategory), render: newsScreen },
   academy: { tab: 'home', keys: ['lessons'], load: (ctx) => ctx.ensure('lessons'), render: academyScreen },
   lesson: { tab: 'home', keys: ['lesson', 'lessons'], load: (ctx) => { ctx.ensure('lessons'); return loadKeyed('lesson', ctx.params.id); }, render: lessonScreen },
   faq: { tab: 'profile', keys: ['faqs'], load: (ctx) => ctx.ensure('faqs'), render: faqScreen },

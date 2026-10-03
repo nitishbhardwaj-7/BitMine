@@ -17,10 +17,16 @@ export interface StoreTransaction {
   store: StoreName;
   purchasedAt: number;
   isSandbox: boolean;
+  /** Subscriptions only: when the paid period this transaction covers ends. */
+  expiresAt?: number;
 }
 
 export interface RevenueCatClient {
-  /** One-time purchases (non-renewing and consumables) for a RevenueCat app user id. */
+  /**
+   * Everything the user has paid for: one-time purchases (non-renewing and
+   * consumables) and, for subscriptions, the current paid period (each renewal
+   * is a new store transaction).
+   */
   listOneTimePurchases(appUserId: string): Promise<StoreTransaction[]>;
 }
 
@@ -32,6 +38,15 @@ interface RcNonSubscription {
   is_sandbox?: boolean;
 }
 
+interface RcSubscription {
+  store?: string;
+  store_transaction_id?: string;
+  purchase_date?: string;
+  expires_date?: string | null;
+  refunded_at?: string | null;
+  is_sandbox?: boolean;
+}
+
 export function httpRevenueCatClient(secretKey: string, baseUrl = "https://api.revenuecat.com"): RevenueCatClient {
   return {
     async listOneTimePurchases(appUserId) {
@@ -40,7 +55,7 @@ export function httpRevenueCatClient(secretKey: string, baseUrl = "https://api.r
         signal: AbortSignal.timeout(10_000),
       });
       if (!res.ok) throw new Error(`RevenueCat subscriber fetch failed: HTTP ${res.status}`);
-      const body = (await res.json()) as { subscriber?: { non_subscriptions?: Record<string, RcNonSubscription[]> } };
+      const body = (await res.json()) as { subscriber?: { non_subscriptions?: Record<string, RcNonSubscription[]>; subscriptions?: Record<string, RcSubscription> } };
 
       const out: StoreTransaction[] = [];
       for (const [productId, list] of Object.entries(body.subscriber?.non_subscriptions ?? {})) {
@@ -56,6 +71,18 @@ export function httpRevenueCatClient(secretKey: string, baseUrl = "https://api.r
             isSandbox: Boolean(t.is_sandbox),
           });
         }
+      }
+      for (const [productId, s] of Object.entries(body.subscriber?.subscriptions ?? {})) {
+        if (!s || (s.store !== "app_store" && s.store !== "play_store")) continue;
+        if (!s.purchase_date || !s.expires_date || s.refunded_at) continue;
+        out.push({
+          storeTransactionId: s.store_transaction_id ?? `${productId}:${s.purchase_date}`,
+          productId,
+          store: s.store,
+          purchasedAt: Date.parse(s.purchase_date),
+          expiresAt: Date.parse(s.expires_date),
+          isSandbox: Boolean(s.is_sandbox),
+        });
       }
       return out;
     },

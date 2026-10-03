@@ -14,6 +14,7 @@ import { config } from '../config.js';
 import { isNative, platform, showRewardedAd, buyProduct, storePrices } from '../native.js';
 import { claimTracksHTML, countdownText, minerCard, minerStatus, minerDays, startHint, startLabel } from './parts.js';
 import { btcUsd } from '../store.js';
+import { offerHTML, promoHTML, streakHTML, boostHTML, priceHTML, saleChipHTML, openClaimsDoneSheet, openStartedSheet } from './offers.js';
 
 // ── Boost ─────────────────────────────────────────────────────────────────
 function boostScreen() {
@@ -40,10 +41,12 @@ function boostScreen() {
           <div class="stat-mini"><span>Paid miners</span><strong>${fmtHash(s.gh.paid)}</strong></div>
           <div class="stat-mini"><span>Free claims</span><strong>${fmtHash(s.gh.claim)}</strong></div>
           <div class="stat-mini"><span>Super Miner</span><strong>${fmtHash(s.gh.super)}</strong></div>
+          ${s.gh.bonus ? `<div class="stat-mini"><span>Bonus</span><strong>${fmtHash(s.gh.bonus)}</strong></div>` : ''}
         </div>
 
         <div class="section-header-row"><span class="section-title">Claim tracks</span><span class="section-link" data-go="store">Get more</span></div>
-        <div class="stack">${claimTracksHTML({ includeLocked: true })}</div>
+        <div class="stack">${claimTracksHTML({ includeLocked: true })}${boostHTML()}</div>
+        ${streakHTML()}
         <p class="muted-note">Each claim plays a short video. Claimed hashpower mines until midnight in your time zone (${esc(state.me?.timezone ?? '')}), so claiming earlier earns more.</p>
       </div>
     </div>`;
@@ -144,11 +147,6 @@ function minerDetailsScreen(ctx) {
 }
 
 // ── Store ─────────────────────────────────────────────────────────────────
-function priceOf(p) {
-  const id = platform === 'ios' ? p.storeIds?.apple : p.storeIds?.google;
-  return state.prices[id] ?? `$${p.priceDisplayUsd.toFixed(2)}`;
-}
-
 function storeScreen(ctx) {
   const products = state.products;
   const owned = new Map((state.status?.superTiers ?? []).map((t) => [t.sku, t]));
@@ -162,6 +160,7 @@ function storeScreen(ctx) {
       ${header('Store')}
       <div class="screen-content-padding" style="gap: 14px;">
         ${products == null ? (state.errors.products ? errorCard(state.errors.products, 'reload') : skeleton(5)) : `
+        ${offerHTML() || promoHTML() ? `<div class="stack" style="order: -1;">${offerHTML()}${promoHTML()}</div>` : ''}
         <div class="section-header-row" style="order: 2; margin-top: ${superFirst ? 6 : 0}px;"><span class="section-title">Paid miners</span><span class="text-xs text-muted" style="font-weight: 600;">${minerDays()} days · renewable</span></div>
         ${miners.map((p, i) => `
           <div class="product-card ${i === miners.length - 1 ? 'featured' : ''}" style="order: 2;">
@@ -170,12 +169,13 @@ function storeScreen(ctx) {
                 <div class="promo-miner-thumb" style="width: 48px; height: 48px;"><img src="./assets/images/miner_rig_3d.jpg" alt=""/></div>
                 <div><h4>${esc(p.name)}</h4><p>${fmtHash(p.gh)} · ${state.status?.dailyStartRequired ? 'mines every day you start' : 'mines around the clock'}</p></div>
               </div>
-              <span class="product-price">${esc(priceOf(p))}</span>
+              <span class="product-price">${priceHTML(p)}</span>
             </div>
             <div class="product-facts">
+              ${saleChipHTML(p)}
               <span class="product-fact">up to ${fmtSats(p.gh * rate)} / day</span>
               <span class="product-fact">${p.durationDays} days</span>
-              <span class="product-fact">Stacks with other miners</span>
+              ${state.status?.perks?.paidSkipStartAds ? '<span class="product-fact perk">One-tap daily start, no videos</span>' : '<span class="product-fact">Stacks with other miners</span>'}
             </div>
             <button class="btn-primary btn-block" data-act="buy" data-sku="${esc(p.sku)}">Buy ${esc(p.name)}</button>
           </div>`).join('')}
@@ -183,6 +183,7 @@ function storeScreen(ctx) {
         <div class="section-header-row" style="order: ${superFirst ? 0 : 3}; margin-top: ${superFirst ? 0 : 6}px;"><span class="section-title">Super Miner</span><span class="text-xs text-muted" style="font-weight: 600;">Extra daily claims</span></div>
         ${supers.map((p) => {
           const o = owned.get(p.sku);
+          const sub = p.billing === 'subscription';
           return `
           <div class="product-card featured" style="order: ${superFirst ? 1 : 4};">
             <div class="product-head">
@@ -190,20 +191,21 @@ function storeScreen(ctx) {
                 <div class="icon-box-purple">${icons.rocket}</div>
                 <div><h4>${esc(p.name)}</h4><p>${p.claimsPerDay} claims a day × ${fmtHash(p.claimGh)}</p></div>
               </div>
-              <span class="product-price">${esc(priceOf(p))}</span>
+              <span class="product-price">${priceHTML(p)}</span>
             </div>
             <div class="product-facts">
+              ${saleChipHTML(p)}
               <span class="product-fact">+${p.claimsPerDay} claims every day</span>
               <span class="product-fact">Up to ${fmtHash(p.maxGhPerDay)} a day</span>
-              <span class="product-fact">${p.durationDays} days</span>
+              <span class="product-fact">${sub ? 'Renews monthly · cancel anytime' : `${p.durationDays >= 365 ? '1 year' : `${p.durationDays} days`}`}</span>
               ${o ? `<span class="owned-chip">Active until ${fmtDate(o.activeUntil)}</span>` : ''}
             </div>
-            <button class="btn-primary btn-block" data-act="buy" data-sku="${esc(p.sku)}">${o ? `Extend ${p.durationDays} days` : `Unlock ${esc(p.name)}`}</button>
+            <button class="btn-primary btn-block" data-act="buy" data-sku="${esc(p.sku)}" ${sub && o ? 'disabled' : ''}>${sub ? (o ? 'Subscribed' : `Subscribe to ${esc(p.name)}`) : o ? `Extend ${p.durationDays >= 365 ? '1 year' : `${p.durationDays} days`}` : `Unlock ${esc(p.name)}`}</button>
           </div>`;
         }).join('')}
 
         <button class="btn-soft btn-block" style="order: 5;" data-act="restore-purchases">Restore purchases</button>
-        <p class="muted-note" style="order: 5;">Earnings shown are estimates at today's mining rate and are paid in sats. Purchases are processed by ${platform === 'ios' ? 'the App Store' : 'Google Play'} and confirmed by our server before anything is added.</p>`}
+        <p class="muted-note" style="order: 5;">Earnings shown are estimates at today's mining rate and are paid in sats. Purchases are processed by ${platform === 'ios' ? 'the App Store' : 'Google Play'} and confirmed by our server before anything is added.${supers.some((p) => p.billing === 'subscription') ? ` Subscriptions renew every month until you cancel them in ${platform === 'ios' ? 'the App Store' : 'Google Play'}.` : ''}</p>`}
       </div>
     </div>`;
 }
@@ -224,8 +226,10 @@ export const screens = {
     load: async (ctx) => {
       await ctx.ensure('products');
       if (isNative && state.products && state.me) {
-        const ids = state.products.map((p) => (platform === 'ios' ? p.storeIds?.apple : p.storeIds?.google)).filter(Boolean);
-        state.prices = await storePrices(state.me.id, ids);
+        const id = (p) => (platform === 'ios' ? p.storeIds?.apple : p.storeIds?.google);
+        const oneTime = state.products.filter((p) => p.billing !== 'subscription').map(id).filter(Boolean);
+        const subs = state.products.filter((p) => p.billing === 'subscription').map(id).filter(Boolean);
+        state.prices = await storePrices(state.me.id, oneTime, subs);
         ctx.rerender();
       }
     },
@@ -304,7 +308,9 @@ export const actions = {
     }
     await refresh('status', 'daily');
     if (state.status?.session?.active) {
-      toast(state.status.dailyStartRequired ? 'Mining started. Your miners run until midnight.' : 'Mining started. Your claims are unlocked until midnight.');
+      const bonus = state.status.streak?.bonusToday ? ` Streak bonus: +${state.status.streak.bonusGh} GH/s today!` : '';
+      toast((state.status.dailyStartRequired ? 'Mining started. Your miners run until midnight.' : 'Mining started. Your claims are unlocked until midnight.') + bonus);
+      openStartedSheet();
     }
   },
 
@@ -315,8 +321,11 @@ export const actions = {
     await refresh('status');
     if (status === 'skipped') return toast('Watch the whole video to claim.', 'error');
     if (status === 'unsupported') return toast('Claims work in the BitMine phone app.', 'error');
-    if (status === 'verified') toast(`+${intent.gh} GH/s added until midnight.`);
-    else if (status === 'pending') toast("Still confirming your video. It'll appear in a moment.");
+    if (status === 'verified') {
+      toast(kind === 'boost' ? `Boost on: +${fmtHash(intent.gh)} for ${state.status?.boost?.minutes ?? 60} minutes.` : `+${intent.gh} GH/s added until midnight.`);
+      // The last free claim of the day: the moment to offer more.
+      if (kind === 'regular' && state.status && state.status.claims.used >= state.status.claims.cap) openClaimsDoneSheet();
+    } else if (status === 'pending') toast("Still confirming your video. It'll appear in a moment.");
     else toast("That video couldn't be confirmed. Please try again.", 'error');
   },
 
@@ -329,16 +338,17 @@ export const actions = {
     if (!state.products) await ctx.ensure('products');
     const product = state.products?.find((p) => p.sku === el.dataset.sku);
     if (!product) return;
+    closeSheet(); // the button may sit in an offer sheet
     if (isNative) {
       const storeId = platform === 'ios' ? product.storeIds?.apple : product.storeIds?.google;
-      const done = await buyProduct(state.me.id, storeId);
+      const done = await buyProduct(state.me.id, storeId, product.billing === 'subscription');
       if (!done) return;
       const r = await post('/v1/store/sync');
       await refresh('status', 'miners', 'products');
       toast(r.granted?.length ? `${product.name} is active. Happy mining!` : "Purchase received. It'll appear within a few minutes.");
     } else if (config.devShortcuts) {
       await post('/v1/dev/purchase', { sku: product.sku });
-      await refresh('status', 'miners');
+      await refresh('status', 'miners', 'products');
       toast(`${product.name} added (browser test mode).`);
     } else {
       toast('Purchases work in the BitMine phone app.', 'error');

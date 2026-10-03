@@ -4,24 +4,39 @@
  */
 import { Types } from "mongoose";
 import { notFound } from "../lib/errors.js";
-import { Balance, Miner, Product, SuperEntitlement } from "../models/index.js";
-import { nextLocalMidnight } from "../lib/time.js";
+import { Balance, Miner, Product, Purchase, SuperEntitlement, User } from "../models/index.js";
+import { localDate, nextLocalMidnight } from "../lib/time.js";
+import { getGrowth, type GrowthSettings } from "../settings/growth.js";
+import { BOOST_TRACK, activeBoostUntil, boostGhFor } from "./boost.js";
+import { streakView } from "./streak.js";
 import { getEconomics, getRateSchedule } from "../settings/economics.js";
 import { ensureBalance } from "../wallet/balances.js";
 import { loadUserTimezone } from "../users/timezone.js";
 import { earnedMsat, isGatedAt, msatPerSecondAt, type MinerSpan } from "./accrual.js";
-import { claimCount, currentSession, loadWindows, sessionView } from "./sessions.js";
+import { claimCount, currentSession, loadWindows, sessionView, startAdsFor } from "./sessions.js";
 
 const iso = (d: Date | number) => new Date(d).toISOString();
 
+/** The first-purchase offer: new accounts that haven't bought anything yet, for a limited time. */
+async function starterOffer(userId: Types.ObjectId, createdAt: Date | undefined, g: GrowthSettings, now: number) {
+  if (g.offerHours <= 0 || !createdAt) return null;
+  const endsAt = createdAt.getTime() + g.offerHours * 3_600_000;
+  if (endsAt <= now) return null;
+  const p = await Product.findOne({ kind: "bundle", active: true }).sort({ sortOrder: 1 }).select({ sku: 1 }).lean();
+  if (!p || (await Purchase.exists({ userId }))) return null;
+  return { sku: p.sku, endsAt: iso(endsAt) };
+}
+
 export async function getMiningStatus(userId: Types.ObjectId, now = Date.now()) {
   await ensureBalance(userId, now);
-  const [bal, schedule, settings, tz, session] = await Promise.all([
+  const [bal, schedule, settings, tz, session, growth, user] = await Promise.all([
     Balance.findOne({ userId }).lean(),
     getRateSchedule(),
     getEconomics(new Date(now)),
     loadUserTimezone(userId, now),
     currentSession(userId, now),
+    getGrowth(),
+    User.findById(userId).select({ streak: 1, createdAt: 1 }).lean(),
   ]);
   const accruedUntil = bal!.accruedUntil!.getTime();
 
@@ -46,12 +61,13 @@ export async function getMiningStatus(userId: Types.ObjectId, now = Date.now()) 
   // Earned since the last hourly credit: shown as "mining", not yet withdrawable.
   const unsettledMsat = Math.floor(earnedMsat(spans, schedule, accruedUntil, now, windows) + (bal!.accrualRemainder ?? 0));
 
-  const ghBySource = { paid: 0, claim: 0, super: 0 };
+  const ghBySource = { paid: 0, claim: 0, super: 0, bonus: 0 };
   for (const m of minerDocs) {
     const active = m.startAt.getTime() <= now && now < Math.min(m.endAt.getTime(), m.revokedAt?.getTime() ?? Infinity);
     if (!active) continue;
     if (m.source === "paid" || m.source === "admin_grant") ghBySource.paid += m.gh;
     else if (m.source === "claim") ghBySource.claim += m.gh;
+    else if (m.source === "boost" || m.source === "streak") ghBySource.bonus += m.gh;
     else ghBySource.super += m.gh;
   }
 
@@ -73,6 +89,19 @@ export async function getMiningStatus(userId: Types.ObjectId, now = Date.now()) 
     };
   });
 
+  const boostUntil = growth.boostAdsPerDay > 0 ? await activeBoostUntil(userId, now) : null;
+  const boost =
+    growth.boostAdsPerDay > 0
+      ? {
+          used: counts(BOOST_TRACK),
+          cap: growth.boostAdsPerDay,
+          minutes: growth.boostMinutes,
+          /** What a boost would add right now. */
+          gh: await boostGhFor(userId, now, growth),
+          activeUntil: boostUntil ? iso(boostUntil) : null,
+        }
+      : null;
+
   return {
     serverTime: iso(now),
     balance: {
@@ -88,8 +117,15 @@ export async function getMiningStatus(userId: Types.ObjectId, now = Date.now()) 
     mining: msatPerSecond > 0,
     /** The daily-start rule is on: mining stops at midnight until today's session is started. */
     dailyStartRequired: isGatedAt(schedule, now),
-    gh: { total: ghBySource.paid + ghBySource.claim + ghBySource.super, ...ghBySource },
+    gh: { total: ghBySource.paid + ghBySource.claim + ghBySource.super + ghBySource.bonus, ...ghBySource },
     session: sessionView(session, now),
+    /** Videos this user must watch to start a day (0 = one tap, e.g. the paid-miner perk). */
+    startAdsRequired: session ? (session.adsRequired ?? 0) : await startAdsFor(userId, now, settings),
+    /** Owning a paid miner waives the start videos. */
+    perks: { paidSkipStartAds: growth.paidSkipStartAds && Boolean(settings.dailyStartRequired) && (settings.startAds ?? 0) > 0 },
+    streak: streakView(user?.streak, localDate(now, tz), growth),
+    boost,
+    offer: await starterOffer(userId, user?.createdAt, growth, now),
     claims: { gh: settings.claimGh, used: counts("regular"), cap: settings.claimsPerDay },
     superTiers,
     nextMidnight: iso(nextLocalMidnight(now, tz)),

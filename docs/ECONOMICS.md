@@ -39,3 +39,18 @@ Stacking several packs **may** reach it faster; that's intended (no paid cap).
 | Free, 60 claims/day | 15.8 | 158 |
 
 Real users claim throughout the day, so claimed GH/s mines less than 24h and actual days are longer.
+
+## Perks, bonuses and offers (2026-10-03)
+
+Set in admin → FAQs & app ("Perks & bonuses", "Sale banner"); defaults in `backend/src/settings/growth.ts`.
+
+| Feature | Default | Cost to us |
+|---|---|---|
+| Paid-miner owners skip the daily start videos | on | A few ad views per paying user per day |
+| Streak: every 7th day started in a row adds 55 GH/s until midnight | on | At most ~2.6 sats per user per week |
+| Boost video: doubles running hashpower (max 500 GH/s) for 60 min, 3 a day | on | At most 1 sat per video, well under what a rewarded view pays |
+| Starter Pack (`starter_bundle`): Mini Miner + Super Miner for 30 days, $3.99, offered for 48 h after sign-up until the first purchase | on | None (a discount) |
+| Super Miner (`super_basic`) is an auto-renewing monthly subscription | on | None |
+| Sale banner with countdown | off | None; the real price is whatever the store charges |
+
+Renewal reminders go out 3 days before, 1 day before and when a paid miner or Super Miner tier ends (subscriptions only when they lapse).

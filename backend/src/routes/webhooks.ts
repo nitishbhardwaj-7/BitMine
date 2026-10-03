@@ -24,7 +24,8 @@ interface RcEvent {
   currency?: string;
 }
 
-const PURCHASE_EVENTS = new Set(["INITIAL_PURCHASE", "NON_RENEWING_PURCHASE"]);
+// RENEWAL: a subscription's next paid period, granted like any other purchase.
+const PURCHASE_EVENTS = new Set(["INITIAL_PURCHASE", "NON_RENEWING_PURCHASE", "RENEWAL"]);
 
 export function webhooksRouter(opts: { ssv: SsvVerifier; store: StoreDeps; revenueCatWebhookAuth?: string }) {
   const r = Router();

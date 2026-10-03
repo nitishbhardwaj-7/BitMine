@@ -7,7 +7,9 @@
  * storeTransactionId makes whichever arrives second a no-op.
  *
  *   paid miner  → a miner of the pack's GH/s for durationDays, stacking freely
- *   Super tier  → that tier's entitlement extended by durationDays
+ *   Super tier  → that tier's entitlement extended by durationDays (a
+ *                 subscription period extends it to that period's end)
+ *   bundle      → both of the above from one purchase
  *   refund      → miner revoked / tier shortened, account flagged for review
  */
 import mongoose, { Types, type ClientSession } from "mongoose";
@@ -28,7 +30,7 @@ export interface StoreDeps {
 }
 
 export type GrantResult =
-  | { status: "granted"; purchaseId: string; sku: string; kind: "miner" | "super_miner"; activeUntil?: string }
+  | { status: "granted"; purchaseId: string; sku: string; kind: "miner" | "super_miner" | "bundle"; activeUntil?: string }
   | { status: "already_granted"; purchaseId: string }
   | { status: "skipped"; reason: "sandbox" | "unknown_product" };
 
@@ -64,7 +66,7 @@ export async function grantTransaction(
   }
 
   const product = await findProductByStoreId(t.productId);
-  if (!product || (product.kind === "miner" && !product.gh)) {
+  if (!product || (product.kind === "miner" && !product.gh) || (product.kind === "bundle" && !product.gh && !product.bundleSuperSku)) {
     logger.error({ userId: String(userId), storeProductId: t.productId }, "purchase for unknown store product");
     return { status: "skipped", reason: "unknown_product" };
   }
@@ -93,7 +95,16 @@ export async function grantTransaction(
         { session: tx },
       );
 
-      if (product.kind === "miner") {
+      // The Super Miner tier this purchase unlocks: the product itself, or the one a bundle includes.
+      const superProduct =
+        product.kind === "super_miner"
+          ? product
+          : product.kind === "bundle" && product.bundleSuperSku
+            ? await Product.findOne({ sku: product.bundleSuperSku, kind: "super_miner" }).session(tx).lean()
+            : null;
+      let activeUntil: string | undefined;
+
+      if (product.kind !== "super_miner" && product.gh) {
         const [miner] = await Miner.create(
           [
             {
@@ -110,34 +121,31 @@ export async function grantTransaction(
         );
         await backfill(userId, miner!._id, { gh: product.gh!, startAt, endAt: startAt + product.durationDays * MS_PER_DAY }, tx);
         await Purchase.updateOne({ _id: purchase!._id }, { $set: { grantedMinerId: miner!._id } }, { session: tx });
-        result = { status: "granted", purchaseId: String(purchase!._id), sku: product.sku, kind: "miner" };
-      } else {
-        // Extend from whichever is later: now, or the current expiry (buying again adds time).
+      }
+      if (superProduct) {
+        // One-time: extend from whichever is later, now or the current expiry (buying again adds time).
+        // Subscription period: active until that period ends.
+        const until = t.expiresAt
+          ? { $max: [{ $ifNull: ["$activeUntil", new Date(0)] }, new Date(t.expiresAt)] }
+          : { $add: [{ $max: [{ $ifNull: ["$activeUntil", new Date(0)] }, new Date(now)] }, product.durationDays * MS_PER_DAY] };
         const ent = await SuperEntitlement.findOneAndUpdate(
-          { userId, productId: product._id },
+          { userId, productId: superProduct._id },
           [
             {
               $set: {
                 userId,
-                productId: product._id,
+                productId: superProduct._id,
                 lastPurchaseId: purchase!._id,
-                activeUntil: {
-                  $add: [{ $max: [{ $ifNull: ["$activeUntil", new Date(0)] }, new Date(now)] }, product.durationDays * MS_PER_DAY],
-                },
+                activeUntil: until,
               },
             },
           ],
           { upsert: true, returnDocument: "after", session: tx, lean: true, updatePipeline: true },
         );
         await Purchase.updateOne({ _id: purchase!._id }, { $set: { grantedSuperUntil: ent!.activeUntil } }, { session: tx });
-        result = {
-          status: "granted",
-          purchaseId: String(purchase!._id),
-          sku: product.sku,
-          kind: "super_miner",
-          activeUntil: ent!.activeUntil.toISOString(),
-        };
+        activeUntil = ent!.activeUntil.toISOString();
       }
+      result = { status: "granted", purchaseId: String(purchase!._id), sku: product.sku, kind: product.kind, activeUntil };
     });
     logger.info({ userId: String(userId), tx: t.storeTransactionId, result }, "purchase granted");
     return result!;
@@ -194,7 +202,7 @@ async function backfill(
 /** Grants everything RevenueCat knows about for this user that we haven't granted yet. */
 export async function syncUser(userId: Types.ObjectId, deps: StoreDeps, now = Date.now()) {
   const client = requireClient(deps);
-  const txs = await client.listOneTimePurchases(String(userId));
+  const txs = await client.listOneTimePurchases(String(userId)); // includes the current period of subscriptions
   const results: GrantResult[] = [];
   for (const t of txs.sort((a, b) => a.purchasedAt - b.purchasedAt)) {
     results.push(await grantTransaction(userId, t, deps, now));
@@ -260,10 +268,17 @@ export async function refundTransaction(storeTransactionId: string, now = Date.n
           { $set: { status: "revoked", revokedAt: new Date(now), revokeReason: reason } },
           { session: tx },
         );
-      } else if (product?.kind === "super_miner") {
+      }
+      const superProduct =
+        product?.kind === "super_miner"
+          ? product
+          : product?.kind === "bundle" && product.bundleSuperSku
+            ? await Product.findOne({ sku: product.bundleSuperSku }).session(tx).lean()
+            : null;
+      if (product && superProduct && purchase.grantedSuperUntil) {
         // Take back this purchase's time, but never end before now.
         await SuperEntitlement.updateOne(
-          { userId: purchase.userId, productId: product._id },
+          { userId: purchase.userId, productId: superProduct._id },
           [{ $set: { activeUntil: { $max: [new Date(now), { $subtract: ["$activeUntil", product.durationDays * MS_PER_DAY] }] } } }],
           { session: tx, updatePipeline: true },
         );
@@ -284,13 +299,20 @@ export async function refundTransaction(storeTransactionId: string, now = Date.n
 
 export async function listProducts() {
   const products = await Product.find({ active: true }).sort({ sortOrder: 1 }).lean();
+  const bySku = new Map(products.map((p) => [p.sku, p]));
+  const tier = (p: (typeof products)[number]) => ({ claimGh: p.claimGh, claimsPerDay: p.claimsPerDay, maxGhPerDay: (p.claimGh ?? 0) * (p.claimsPerDay ?? 0) });
   return products.map((p) => ({
     sku: p.sku,
     kind: p.kind,
     name: p.name,
     priceDisplayUsd: p.priceDisplayUsd,
+    listPriceUsd: p.listPriceUsd ?? undefined,
+    billing: p.billing ?? "one_time",
     durationDays: p.durationDays,
-    ...(p.kind === "miner" ? { gh: p.gh } : { claimGh: p.claimGh, claimsPerDay: p.claimsPerDay, maxGhPerDay: (p.claimGh ?? 0) * (p.claimsPerDay ?? 0) }),
+    ...(p.kind === "miner" ? { gh: p.gh } : p.kind === "super_miner" ? tier(p) : {}),
+    ...(p.kind === "bundle"
+      ? { gh: p.gh, includes: p.bundleSuperSku && bySku.get(p.bundleSuperSku) ? { sku: p.bundleSuperSku, name: bySku.get(p.bundleSuperSku)!.name, ...tier(bySku.get(p.bundleSuperSku)!) } : undefined }
+      : {}),
     storeIds: { apple: p.storeIds?.apple, google: p.storeIds?.google },
   }));
 }

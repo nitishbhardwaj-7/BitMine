@@ -10,6 +10,7 @@ import { icons } from '../icons.js';
 import { state, refresh, btcUsd } from '../store.js';
 import { fmtSats, fmtUsd, fmtDateTime, sats } from '../format.js';
 import { liveBalanceHtml, moneySub, unit, money, settlementRows } from './parts.js';
+import { reachFasterHTML } from './offers.js';
 
 const WITHDRAW_STATUS = {
   pending: ['warn', 'Waiting for review'],
@@ -90,6 +91,7 @@ function walletScreen() {
           <div class="bm-progress-track"><div class="bm-progress-fill" style="width: ${progress}%;"></div></div>
           <p class="bm-hint" style="margin-top: 8px;">${w.openWithdrawal ? `A withdrawal of ${fmtSats(w.openWithdrawal.amountSats * 1000)} is in progress.` : avail >= min ? 'You can withdraw now.' : `The minimum withdrawal is ${min.toLocaleString('en-US')} sats. Keep mining!`}</p>
         </div>
+        ${w.openWithdrawal ? '' : reachFasterHTML(avail, min)}
         <div class="bm-card" style="padding: 6px 16px;"><div class="info-rows">
           <div class="info-row"><span>Available</span><strong>${fmtSats(w.availableMsat)}</strong></div>
           <div class="info-row"><span>Being withdrawn</span><strong>${fmtSats(w.lockedMsat)}</strong></div>
@@ -132,7 +134,7 @@ function transactionsScreen() {
 }
 
 export const screens = {
-  wallet: { tab: 'wallet', keys: ['wallet', 'status', 'daily', 'withdrawals', 'market'], load: (ctx) => ctx.refresh('wallet', 'daily', 'withdrawals'), render: walletScreen },
+  wallet: { tab: 'wallet', keys: ['wallet', 'status', 'daily', 'withdrawals', 'market', 'products'], load: (ctx) => { ctx.ensure('products'); return ctx.refresh('wallet', 'daily', 'withdrawals'); }, render: walletScreen },
   transactions: { tab: 'wallet', keys: ['ledger'], load: (ctx) => ctx.refresh('ledger'), render: transactionsScreen },
 };
 

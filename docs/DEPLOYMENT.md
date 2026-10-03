@@ -65,7 +65,7 @@ Sign in at `https://api.yourdomain/admin/login` with that email and password.
 |---|---|---|
 | AdMob | Rewarded ad unit → Server-side verification → callback URL | `https://api.yourdomain/webhooks/admob-ssv` |
 | RevenueCat | Project → Integrations → Webhooks | URL `https://api.yourdomain/webhooks/revenuecat`, Authorization header = `REVENUECAT_WEBHOOK_AUTH` |
-| RevenueCat | Products | Create `bitmine_miner_mini`, `bitmine_miner_spark`, `bitmine_miner_core`, `bitmine_miner_forge`, `bitmine_miner_titan`, `bitmine_super_basic`, `bitmine_super_pro`, `bitmine_super_max` in App Store Connect / Play Console (non-renewing / consumable) and import them |
+| RevenueCat | Products | Create `bitmine_miner_mini`, `bitmine_miner_spark`, `bitmine_miner_core`, `bitmine_miner_forge`, `bitmine_miner_titan`, `bitmine_super_pro`, `bitmine_super_max`, `bitmine_starter_bundle` in App Store Connect / Play Console (non-renewing / consumable), plus `bitmine_super_basic_monthly` as an **auto-renewing monthly subscription** (one base plan), and import them all. In the webhook, keep RENEWAL events enabled: each renewal extends Super Miner by that paid month |
 | AdMob | `app-ads.txt` | Serve the line AdMob gives you at `https://yourdomain/app-ads.txt` |
 | Admin panel → FAQs & app | Ad units, store URLs, support email, privacy and terms URLs | Replace the Google test ad units with your real ones before release |
 

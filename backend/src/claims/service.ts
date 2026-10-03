@@ -17,13 +17,16 @@ import { AppError, notFound } from "../lib/errors.js";
 import { logger } from "../lib/logger.js";
 import { getEconomics } from "../settings/economics.js";
 import { claimCount, currentSession, sessionActive } from "../mining/sessions.js";
+import { recordStreak } from "../mining/streak.js";
+import { BOOST_TRACK, activeBoostUntil, boostGhFor } from "../mining/boost.js";
+import { getGrowth } from "../settings/growth.js";
 import type { SsvReward } from "./admobSsv.js";
 
 export const CLAIM_TTL_MS = 10 * 60 * 1000;
 export const MAX_OPEN_CLAIMS = 3;
 const REGULAR_TRACK = "regular";
 
-export type ClaimRequest = { kind: "regular" } | { kind: "super"; tier: string } | { kind: "start" };
+export type ClaimRequest = { kind: "regular" } | { kind: "super"; tier: string } | { kind: "start" } | { kind: "boost" };
 
 interface Track {
   track: string;
@@ -36,6 +39,15 @@ async function resolveTrack(userId: Types.ObjectId, req: Exclude<ClaimRequest, {
   if (req.kind === "regular") {
     const s = await getEconomics(new Date(now));
     return { track: REGULAR_TRACK, gh: s.claimGh, cap: s.claimsPerDay };
+  }
+  if (req.kind === "boost") {
+    // A boost video doubles the hashpower running right now (up to a limit) for a while.
+    const g = await getGrowth();
+    if (g.boostAdsPerDay <= 0) throw notFound("Boost");
+    if (await activeBoostUntil(userId, now)) throw new AppError(409, "boost_active", "Your boost is still running. Come back when it ends.");
+    const gh = await boostGhFor(userId, now, g);
+    if (gh <= 0) throw new AppError(409, "nothing_to_boost", "Claim some hashpower first, then boost it.");
+    return { track: BOOST_TRACK, gh, cap: g.boostAdsPerDay };
   }
   const product = await Product.findOne({ sku: req.tier, kind: "super_miner", active: true }).lean();
   if (!product || product.claimGh == null || product.claimsPerDay == null) throw notFound("Super Miner tier");
@@ -185,9 +197,15 @@ export async function verifySsvReward(reward: SsvReward, now = Date.now()): Prom
 
   let cap: number;
   let track: string;
+  let endAt = session.endsAt;
   if (claim.kind === "regular") {
     cap = (await getEconomics(new Date(now))).claimsPerDay;
     track = REGULAR_TRACK;
+  } else if (claim.kind === "boost") {
+    const g = await getGrowth();
+    cap = g.boostAdsPerDay;
+    track = BOOST_TRACK;
+    endAt = new Date(Math.min(session.endsAt.getTime(), now + g.boostMinutes * 60_000));
   } else {
     const product = await Product.findById(claim.tierProductId).lean();
     if (!product?.claimsPerDay) {
@@ -229,10 +247,10 @@ export async function verifySsvReward(reward: SsvReward, now = Date.now()): Prom
         [
           {
             userId: claim.userId,
-            source: claim.kind === "regular" ? "claim" : "super_claim",
+            source: claim.kind === "regular" ? "claim" : claim.kind === "boost" ? "boost" : "super_claim",
             gh: claim.gh,
             startAt: new Date(now),
-            endAt: session.endsAt,
+            endAt,
             claimId: claim._id,
             productId: claim.tierProductId,
           },
@@ -264,7 +282,7 @@ export async function verifySsvReward(reward: SsvReward, now = Date.now()): Prom
  * the count exact with concurrent callbacks.
  */
 async function verifyStartAd(
-  claim: { _id: Types.ObjectId },
+  claim: { _id: Types.ObjectId; userId: Types.ObjectId },
   sessionId: Types.ObjectId,
   reward: SsvReward,
   now: number,
@@ -302,6 +320,10 @@ async function verifyStartAd(
       );
       active = started.modifiedCount === 1;
     });
+    if (active) {
+      const s = await Session.findById(sessionId).select({ localDate: 1, endsAt: 1 }).lean();
+      if (s) await recordStreak(claim.userId, s, now).catch((err) => logger.error({ err }, "streak update failed"));
+    }
     return { result: "counted", active };
   } catch (err) {
     if (err instanceof Abort) {

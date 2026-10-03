@@ -12,6 +12,7 @@ import {
   tickerHTML, minerCard, claimTracksHTML, countdownText, featuredNews, newsRow, lessonRow, settlementRows,
   liveBalanceHtml, liveSmallText, money, moneySub, minerDays, startHint, startLabel, superUpsellHTML, superPacksHTML,
 } from './parts.js';
+import { offerHTML, promoHTML, streakHTML, boostHTML, compareHTML } from './offers.js';
 
 function heroCard() {
   const s = state.status;
@@ -124,6 +125,7 @@ export const screens = {
         <div class="home-sheet">
           <div class="screen-content-padding" style="gap: 18px;">
             ${tickerHTML()}
+            ${offerHTML()}${promoHTML()}
 
             <div>
               <div class="section-header-row"><span class="section-title">Your Mining Overview</span><span class="section-link" data-go="miners">View All</span></div>
@@ -157,17 +159,14 @@ export const screens = {
                 <span class="reset-chip">${icons.clock}<span data-live="countdown">${countdownText()}</span></span>
               </div>
               ${s ? claimTracksHTML() : skeleton(2)}
+              ${s ? boostHTML() : ''}
               ${superUpsellHTML()}
               ${s && !s.session?.active ? `<button class="btn-primary btn-block" data-act="start-mining">${icons.bolt} Start mining</button>` : ''}
             </div>
 
-            <div class="promo-upgrade-card" data-go="store">
-              <div class="promo-left">
-                <div class="promo-miner-thumb"><img src="./assets/images/miner_rig_3d.jpg" alt=""/></div>
-                <div class="promo-text"><h4>Upgrade Your Mining Power</h4><p>Paid miners add hashpower for ${minerDays()} days.</p></div>
-              </div>
-              <div style="color: var(--color-primary-purple);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg></div>
-            </div>
+            ${streakHTML()}
+
+            ${compareHTML()}
 
             <div>
               <div class="section-header-row"><span class="section-title">Active Miners</span><span class="section-link" data-go="miners">Manage (${active.length})</span></div>

@@ -12,7 +12,7 @@ import { refundTransaction, runStoreFollowUps, syncFromApp, syncUser } from "./s
 const NOW = Date.parse("2026-10-01T06:00:00Z");
 const TITAN = "bitmine_miner_titan";
 const PRO = "bitmine_super_pro";
-const BASIC = "bitmine_super_basic";
+const BASIC = "bitmine_super_basic_monthly";
 
 beforeAll(startTestDb, 180_000);
 afterAll(stopTestDb);

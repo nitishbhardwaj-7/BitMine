@@ -56,9 +56,9 @@ describe("store over HTTP", () => {
     const res = await fetch(`${base}/v1/store/products`, { headers: { authorization: `Bearer ${token}` } });
     const { products } = (await res.json()) as { products: { sku: string; storeIds: { apple: string } }[] };
     expect(products.map((p) => p.sku)).toEqual([
-      "miner_mini", "miner_spark", "miner_core", "miner_forge", "miner_titan", "super_basic", "super_pro", "super_max",
+      "starter_bundle", "miner_mini", "miner_spark", "miner_core", "miner_forge", "miner_titan", "super_basic", "super_pro", "super_max",
     ]);
-    expect(products[4]!.storeIds.apple).toBe("bitmine_miner_titan");
+    expect(products[5]!.storeIds.apple).toBe("bitmine_miner_titan");
   });
 
   it("POST /v1/store/sync grants what RevenueCat confirms for the signed-in user only", async () => {

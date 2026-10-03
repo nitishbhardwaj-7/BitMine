@@ -28,6 +28,7 @@ const claimBody = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("regular") }),
   z.object({ kind: z.literal("super"), tier: z.string().min(1).max(40) }),
   z.object({ kind: z.literal("start") }),
+  z.object({ kind: z.literal("boost") }),
 ]);
 
 const sixDigits = z.string().trim().regex(/^\d{6}$/, "6-digit code");

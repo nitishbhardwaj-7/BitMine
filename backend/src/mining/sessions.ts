@@ -11,11 +11,14 @@
  * tap and only unlocks claims; paid miners earn around the clock.
  */
 import type { ClientSession, Types } from "mongoose";
-import { Session } from "../models/index.js";
+import { Miner, Session } from "../models/index.js";
 import { localDate, nextLocalMidnight } from "../lib/time.js";
 import { loadUserTimezone } from "../users/timezone.js";
 import { ensureBalance } from "../wallet/balances.js";
 import { getEconomics } from "../settings/economics.js";
+import { getGrowth } from "../settings/growth.js";
+import type { EconomicsSettings } from "../config/economics.js";
+import { recordStreak } from "./streak.js";
 import type { MiningWindow } from "./accrual.js";
 
 interface SessionLike {
@@ -55,6 +58,21 @@ export function sessionView(s: SessionLike | null | undefined, now = Date.now())
 }
 
 /**
+ * Start videos this user owes for a new day: the daily-start setting, waived
+ * for owners of an active paid miner when that perk is on.
+ */
+export async function startAdsFor(userId: Types.ObjectId, now = Date.now(), settings?: EconomicsSettings): Promise<number> {
+  const eco = settings ?? (await getEconomics(new Date(now)));
+  const ads = eco.dailyStartRequired ? Math.max(0, Math.floor(eco.startAds ?? 0)) : 0;
+  if (ads === 0) return 0;
+  if ((await getGrowth()).paidSkipStartAds) {
+    const paid = await Miner.exists({ userId, source: "paid", revokedAt: null, startAt: { $lte: new Date(now) }, endAt: { $gt: new Date(now) } });
+    if (paid) return 0;
+  }
+  return ads;
+}
+
+/**
  * Opens today's session, or returns it if already opened (idempotent). With
  * start videos required it is created pending and activates when the last
  * video is verified; otherwise it is active at once.
@@ -64,8 +82,8 @@ export async function startSession(userId: Types.ObjectId, now = Date.now()) {
   const day = localDate(now, tz);
   await ensureBalance(userId, now);
   const settings = await getEconomics(new Date(now));
-  const adsRequired = settings.dailyStartRequired ? Math.max(0, Math.floor(settings.startAds ?? 0)) : 0;
-  return Session.findOneAndUpdate(
+  const adsRequired = await startAdsFor(userId, now, settings);
+  const s = await Session.findOneAndUpdate(
     { userId, localDate: day },
     {
       $setOnInsert: {
@@ -82,6 +100,8 @@ export async function startSession(userId: Types.ObjectId, now = Date.now()) {
     },
     { upsert: true, returnDocument: "after", lean: true },
   );
+  if (s && sessionActive(s, now)) await recordStreak(userId, s, now);
+  return s;
 }
 
 /** Today's session if the user has opened one and the day isn't over (it may still be waiting for its start videos). */

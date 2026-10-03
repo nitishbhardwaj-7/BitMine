@@ -180,6 +180,6 @@ describe("reminders", () => {
 
     expect((await runReminders(now)).expiry).toBe(1);
     expect((await runReminders(now + 3600_000)).expiry).toBe(0);
-    expect((await Notification.findOne({ userId, kind: "miner_expiry" }).lean())!.body).toBe("Your Titan (2,000 GH/s) stops mining in 3 days. Renew it in the Store to keep mining.");
+    expect((await Notification.findOne({ userId, kind: "miner_expiry" }).lean())!.body).toBe("Your Titan (2,000 GH/s) stops mining in 3 days. Renew it now and keep earning without a gap.");
   });
 });

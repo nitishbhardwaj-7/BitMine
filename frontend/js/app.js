@@ -10,8 +10,9 @@ import { state, subscribe, refresh, ensure, loadKeyed, bootstrap, reset, startPo
 import { toast, closeSheet, openSheet, sheetOpen, busy, formData, showFieldError } from './ui.js';
 import { icons } from './icons.js';
 import { config } from './config.js';
-import { isNative, platform, pushToken, onPushTap, onBackButton, onResume, exitApp, setStatusBar, signOutPurchases, openUrl } from './native.js';
+import { isNative, platform, pushToken, onPushTap, onBackButton, onResume, exitApp, setStatusBar, signOutPurchases, openUrl, setBanner } from './native.js';
 import { cycleUnit, toggleBalanceHidden, liveBalanceHtml, liveSmallText, moneySub, countdownText } from './screens/parts.js';
+import { fmtCountdown } from './format.js';
 
 import * as authScreens from './screens/auth.js';
 import * as homeScreens from './screens/home.js';
@@ -149,6 +150,8 @@ function render({ fresh }) {
   statusBar?.classList.toggle('light-text', Boolean(screen.dark));
   statusBar?.classList.toggle('dark-text', !screen.dark);
   setStatusBar(Boolean(screen.dark));
+  // Banner ad on the reading screens only (screen.banner), above the bottom navigation.
+  setBanner(Boolean(auth.signedIn && screen.banner), { adUnitId: state.config?.adUnits?.[platform]?.banner, testDevices: state.config?.admobTestDevices ?? [], margin: showNav ? 92 : 0 });
 
   const jumper = document.getElementById('screenJumperSelect');
   if (jumper && [...jumper.options].some((o) => o.value === current.id)) jumper.value = current.id;
@@ -181,6 +184,7 @@ setInterval(() => {
   c.querySelectorAll('[data-live="balance-sub"]').forEach((e) => (e.textContent = moneySub(liveBalanceMsat())));
   c.querySelectorAll('[data-live="today"]').forEach((e) => (e.textContent = liveSmallText(liveTodayMsat())));
   c.querySelectorAll('[data-live="countdown"]').forEach((e) => (e.textContent = countdownText()));
+  document.querySelectorAll('[data-until]').forEach((e) => (e.textContent = fmtCountdown(Date.parse(e.dataset.until) - Date.now())));
   // Midnight passed: claims reset, fetch the new day's status once.
   if (Date.parse(state.status.nextMidnight) <= Date.now() && Date.now() - lastCountdownRefresh > 60_000) {
     lastCountdownRefresh = Date.now();
