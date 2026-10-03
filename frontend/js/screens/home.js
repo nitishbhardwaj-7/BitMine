@@ -12,7 +12,7 @@ import {
   tickerHTML, minerCard, claimTracksHTML, countdownText, featuredNews, newsRow, lessonRow, settlementRows,
   liveBalanceHtml, liveSmallText, money, moneySub, minerDays, startHint, startLabel, superUpsellHTML, superPacksHTML,
 } from './parts.js';
-import { offerHTML, promoHTML, streakHTML, boostHTML, compareHTML } from './offers.js';
+import { offerHTML, promoHTML, streakHTML, boostHTML, compareHTML, maybeOpenOfferSheet } from './offers.js';
 
 function heroCard() {
   const s = state.status;
@@ -125,7 +125,7 @@ export const screens = {
         <div class="home-sheet">
           <div class="screen-content-padding" style="gap: 18px;">
             ${tickerHTML()}
-            ${offerHTML()}${promoHTML()}
+            ${promoHTML()}
 
             <div>
               <div class="section-header-row"><span class="section-title">Your Mining Overview</span><span class="section-link" data-go="miners">View All</span></div>
@@ -163,6 +163,8 @@ export const screens = {
               ${superUpsellHTML()}
               ${s && !s.session?.active ? `<button class="btn-primary btn-block" data-act="start-mining">${icons.bolt} Start mining</button>` : ''}
             </div>
+
+            ${offerHTML()}
 
             ${streakHTML()}
 
@@ -228,6 +230,7 @@ export const screens = {
     },
     after(root) {
       initHeroScrollCollapse(root);
+      maybeOpenOfferSheet();
     },
   },
 };

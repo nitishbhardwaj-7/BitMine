@@ -5,7 +5,7 @@
    products); nothing here grants anything.
    ========================================================================== */
 
-import { esc, openSheet } from '../ui.js';
+import { esc, openSheet, sheetOpen } from '../ui.js';
 import { icons } from '../icons.js';
 import { state } from '../store.js';
 import { fmtHash, fmtSats, fmtCountdown } from '../format.js';
@@ -75,6 +75,31 @@ export function offerHTML() {
   const p = offer && product(offer.sku);
   if (!p || Date.parse(offer.endsAt) <= Date.now()) return '';
   return `<div class="offer-card">${offerBody(p, offer)}</div>`;
+}
+
+/** The offer as a popup: once a day while it runs, the first time Home shows it. */
+let offerTimer = null;
+export function maybeOpenOfferSheet() {
+  // Home renders several times while the app starts (and start-up navigation closes
+  // sheets), so wait until it has settled and is still the screen on show.
+  clearTimeout(offerTimer);
+  offerTimer = setTimeout(() => {
+    if (document.getElementById('homeScreenContainer')) openOfferSheet();
+  }, 1500);
+}
+
+function openOfferSheet() {
+  const offer = state.status?.offer;
+  const p = offer && product(offer.sku);
+  if (!p || Date.parse(offer.endsAt) <= Date.now() || sheetOpen()) return;
+  const today = new Date().toDateString();
+  try {
+    if (localStorage.getItem('bitmine.offerSeen') === today) return;
+    localStorage.setItem('bitmine.offerSeen', today);
+  } catch {
+    return; // no storage: the card on Home is enough
+  }
+  openSheet('A welcome gift for you', `<div class="stack"><div class="offer-card">${offerBody(p, offer)}</div><p class="bm-hint text-center">New miners only. You can also find it on Home until it ends.</p></div>`);
 }
 
 // ── daily streak ──────────────────────────────────────────────────────────
