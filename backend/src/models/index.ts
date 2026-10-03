@@ -492,6 +492,8 @@ const ledgerSchema = new Schema(
   { timestamps: { createdAt: true, updatedAt: false } },
 );
 ledgerSchema.index({ userId: 1, createdAt: -1 });
+// The transactions list pages through a user's rows newest-first by _id.
+ledgerSchema.index({ userId: 1, _id: -1 });
 // Referral job: a day's mining credits.
 ledgerSchema.index({ type: 1, createdAt: 1 });
 
