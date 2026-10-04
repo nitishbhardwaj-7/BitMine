@@ -1,5 +1,7 @@
 # CLAUDE_HANDOFF.md — BitMine
 
+> **Updated state:** read `CLAUDE_MEMORY.md` first (2026-10-04). This file is the 2026-10-02 background and is out of date where the two disagree.
+
 > Context export for a new Claude conversation that has **zero** knowledge of the previous one.
 > Written 2026-10-01 at the end of a long build session. Secrets are never included; values are shown as `<REDACTED>`.
 > Repository root on the user's PC: `D:\BitMine` (Windows 11, Git Bash + PowerShell, Node 22.20.0).
