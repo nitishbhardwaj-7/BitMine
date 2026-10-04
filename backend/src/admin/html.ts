@@ -77,7 +77,7 @@ body{margin:0;background:var(--page);color:var(--ink);font:14px/1.45 'Plus Jakar
 a{color:var(--purple);text-decoration:none}a:hover{text-decoration:underline}
 h1{font-size:22px;font-weight:800;letter-spacing:-.3px;margin:0}h2{font-size:15px;font-weight:800;margin:0 0 12px}
 .side{width:232px;flex-shrink:0;background:var(--hero);color:#fff;padding:22px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:18px}
-.brand{display:flex;align-items:center;gap:10px;padding:0 8px;font-weight:800;font-size:17px}.brand img{width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 3px 10px rgba(109,53,245,.6))}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px;font-weight:800;font-size:17px}.brand img{width:36px;height:36px;object-fit:contain}
 .brand small{display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,.55);letter-spacing:.3px}
 .nav{display:flex;flex-direction:column;gap:3px}.nav a{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:12px;color:rgba(255,255,255,.72);font-weight:600;font-size:13.5px}.nav a svg{width:17px;height:17px;flex-shrink:0}
 .nav a:hover{background:rgba(255,255,255,.07);color:#fff;text-decoration:none}.nav a.on{background:rgba(255,255,255,.12);color:#fff;box-shadow:inset 0 1px 1px rgba(255,255,255,.18)}
@@ -124,11 +124,11 @@ button.btn.good{background:var(--good);box-shadow:none}button.btn.bad{background
 export function layout(opts: { title: string; path: string; csrf?: string; flash?: { kind: "ok" | "err"; text: string } | null; body: Html; subtitle?: string }) {
   const onPath = (href: string) => (href === "/admin" ? opts.path === "/admin" : opts.path.startsWith(href));
   return html`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${opts.title} · BitMine Admin</title><meta name="robots" content="noindex"><meta name="theme-color" content="#0B0A18"><link rel="icon" type="image/png" href="/admin/assets/logo.png?v=2">
+<title>${opts.title} · BitMine Admin</title><meta name="robots" content="noindex"><meta name="theme-color" content="#0B0A18"><link rel="icon" type="image/png" href="/admin/assets/logo.png?v=3">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
 <style>${raw(CSS)}</style></head><body>
 ${opts.csrf
-  ? html`<aside class="side"><div class="brand"><img src="/admin/assets/logo.png?v=2" alt=""><div>BitMine<small>ADMIN</small></div></div>
+  ? html`<aside class="side"><div class="brand"><img src="/admin/assets/logo.png?v=3" alt=""><div>BitMine<small>ADMIN</small></div></div>
 <nav class="nav">${NAV.map(([href, label, d]) => html`<a href="${href}" class="${onPath(href) ? "on" : ""}">${icon(d)}${label}</a>`)}</nav>
 <form method="post" action="/admin/logout"><input type="hidden" name="_csrf" value="${opts.csrf}"><button>Sign out</button></form></aside>`
   : ""}
@@ -160,12 +160,12 @@ const LOGIN_CSS = `
 export function loginLayout(opts: { error?: string | null; email?: string }) {
   const feat = (d: string, text: string) => html`<li><i>${icon(d)}</i>${text}</li>`;
   return html`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sign in · BitMine Admin</title><meta name="robots" content="noindex"><meta name="theme-color" content="#0B0A18"><link rel="icon" type="image/png" href="/admin/assets/logo.png?v=2">
+<title>Sign in · BitMine Admin</title><meta name="robots" content="noindex"><meta name="theme-color" content="#0B0A18"><link rel="icon" type="image/png" href="/admin/assets/logo.png?v=3">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
 <style>${raw(CSS)}${raw(LOGIN_CSS)}</style></head><body>
 <div class="login">
   <section class="login-hero"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span>
-    <div class="brand"><img src="/admin/assets/logo.png?v=2" alt=""><div>BitMine<small>ADMIN</small></div></div>
+    <div class="brand"><img src="/admin/assets/logo.png?v=3" alt=""><div>BitMine<small>ADMIN</small></div></div>
     <div><h1>Run your mining business from one place.</h1><p>Revenue, purchases, users and Lightning payouts, with every action recorded.</p>
       <ul>${feat("M12 19V5m0 0-6 6m6-6 6 6", "Approve withdrawals sent from your Speed account")}${feat("M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z", "Day-by-day revenue, ads and payouts")}${feat("M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m14-10a4 4 0 1 0-8 0 4 4 0 0 0 8 0z", "Every user, purchase and support request")}</ul></div>
     <div class="foot">Private area · sign-ins are limited and logged</div>
